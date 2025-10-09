@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "user-avatar-1",
+      "description": "User avatar",
+      "imageUrl": "https://picsum.photos/seed/user1/40/40",
+      "imageHint": "person avatar"
+    },
+    {
+      "id": "building-photo",
+      "description": "Photo of a modern office building",
+      "imageUrl": "https://picsum.photos/seed/bld1/800/600",
+      "imageHint": "modern building"
+    },
+    {
+      "id": "electrical-panel",
+      "description": "Photo of an electrical panel",
+      "imageUrl": "https://picsum.photos/seed/panel1/400/300",
+      "imageHint": "electrical panel"
+    },
+    {
+      "id": "equipment-photo",
+      "description": "Photo of an office equipment",
+      "imageUrl": "https://picsum.photos/seed/equip1/400/300",
+      "imageHint": "office equipment"
+    }
+  ]
 }
