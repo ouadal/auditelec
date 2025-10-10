@@ -136,7 +136,7 @@ export default function DashboardPage() {
             <CardDescription>
               Répartition de la puissance installée.
             </CardDescription>
-          </header>
+          </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
               <RechartsBarChart data={equipmentData}>
