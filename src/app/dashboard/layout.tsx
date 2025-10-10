@@ -42,7 +42,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar className="bg-gradient-to-b from-white to-gray-50">
+      <Sidebar className="bg-card">
         <SidebarHeader className="border-b border-gray-200/60 p-4">
           <Link
             href="/dashboard"
@@ -54,8 +54,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </span>
           </Link>
         </SidebarHeader>
-        <SidebarContent className="pt-8">
-          <SidebarMenu className="space-y-6 p-2">
+        <SidebarContent className="pt-16">
+          <SidebarMenu className="space-y-12 p-2">
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.href} data-active={pathname === item.href} className="m-0 p-0 shadow-none">
                 <Link href={item.href} legacyBehavior passHref>
@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     size="lg"
                     isActive={pathname === item.href}
                     tooltip={item.label}
-                    className="w-full justify-start rounded-md"
+                    className="w-full h-16 justify-start rounded-md"
                   >
                     <item.icon />
                     <span>{item.label}</span>
