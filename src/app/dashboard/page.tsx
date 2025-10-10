@@ -100,8 +100,8 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
+      <div className="grid gap-4">
+        <Card>
           <CardHeader>
             <CardTitle>Évolution de la Consommation</CardTitle>
             <CardDescription>
@@ -135,7 +135,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3">
+        <Card>
           <CardHeader>
             <CardTitle>Puissance par Type d'Équipement</CardTitle>
             <CardDescription>
