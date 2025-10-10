@@ -42,14 +42,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar
-        className="bg-white/95"
-        style={{
-          backgroundImage: 'url("https://picsum.photos/seed/mountains/800/1200")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
+      <Sidebar className="bg-background">
         <SidebarHeader className="border-b border-gray-200/60 p-4">
           <Link
             href="/dashboard"
