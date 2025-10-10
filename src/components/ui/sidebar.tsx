@@ -519,12 +519,14 @@ const sidebarMenuButtonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-white text-sidebar-foreground hover:bg-primary hover:text-primary-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground",
+          "bg-transparent text-sidebar-foreground/70 hover:bg-primary hover:text-primary-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground",
+        ghost:
+          "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground",
         outline:
-          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-primary hover:text-primary-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground",
+          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] text-sidebar-foreground/70 hover:bg-primary hover:text-primary-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground",
       },
       size: {
-        default: "h-12 text-sm",
+        default: "h-10 text-sm",
         sm: "h-7 text-xs",
         lg: "h-12 text-sm group-data-[collapsible=icon]:!p-0",
       },

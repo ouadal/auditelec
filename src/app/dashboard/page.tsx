@@ -7,8 +7,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  AreaChart,
-  BarChart,
   DollarSign,
   Lightbulb,
   Zap,
@@ -21,7 +19,6 @@ import {
   YAxis,
   Tooltip as RechartsTooltip,
   Legend,
-  Area,
   CartesianGrid,
   Line,
   LineChart,
@@ -34,24 +31,28 @@ const stats = [
     value: '125.6 kW',
     icon: Zap,
     change: '+5.2% vs mois dernier',
+    color: 'bg-orange-500'
   },
   {
     title: 'Énergie Totale Annuelle',
     value: '450 MWh',
     icon: Lightbulb,
     change: '+2.1% vs année dernière',
+    color: 'bg-green-500'
   },
   {
     title: 'Énergie Diurne',
     value: '280 MWh',
     icon: Clock,
     change: '62% du total',
+    color: 'bg-red-500'
   },
   {
     title: 'Énergie Nocturne',
     value: '170 MWh',
     icon: Clock,
     change: '38% du total',
+    color: 'bg-cyan-500'
   },
 ];
 
@@ -78,12 +79,16 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+              <div className={`p-3 rounded-md text-white ${stat.color}`}>
+                <stat.icon className="h-6 w-6" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-medium text-right text-muted-foreground">{stat.title}</CardTitle>
+                 <div className="text-2xl font-bold text-right">{stat.value}</div>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
               <p className="text-xs text-muted-foreground">{stat.change}</p>
             </CardContent>
           </Card>
@@ -131,7 +136,7 @@ export default function DashboardPage() {
             <CardDescription>
               Répartition de la puissance installée.
             </CardDescription>
-          </CardHeader>
+          </header>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
               <RechartsBarChart data={equipmentData}>

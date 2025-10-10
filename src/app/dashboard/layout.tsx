@@ -10,9 +10,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarFooter,
-  SidebarInset,
-  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
   Building,
@@ -20,21 +17,21 @@ import {
   FileDown,
   GaugeCircle,
   Home,
-  LogOut,
   Package,
   Waves,
   Zap,
 } from 'lucide-react';
 import { DashboardHeader } from '@/components/dashboard-header';
+import { Separator } from '@/components/ui/separator';
 
 const menuItems = [
+  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
   { href: '/dashboard/building-info', label: 'Bâtiment', icon: Building },
   { href: '/dashboard/electrical', label: 'Installation', icon: Zap },
   { href: '/dashboard/audit', label: 'Audit', icon: ClipboardList },
   { href: '/dashboard/inventory', label: 'Inventaire', icon: Package },
   { href: '/dashboard/energy', label: 'Énergie', icon: GaugeCircle },
   { href: '/dashboard/reports', label: 'Rapports', icon: FileDown },
-  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -42,8 +39,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar className="bg-card">
-        <SidebarHeader className="border-b border-gray-200/60 p-4">
+      <Sidebar className="bg-card border-r border-gray-200/60">
+        <SidebarHeader className="p-4">
           <Link
             href="/dashboard"
             className="flex items-center gap-2 text-lg font-semibold"
@@ -54,17 +51,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </span>
           </Link>
         </SidebarHeader>
-        <SidebarContent className="pt-16">
-          <SidebarMenu className="space-y-12 p-2">
+        <Separator />
+        <SidebarContent>
+          <SidebarMenu className="p-2">
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.href} data-active={pathname === item.href} className="m-0 p-0 shadow-none">
                 <Link href={item.href} legacyBehavior passHref>
                   <SidebarMenuButton
-                    variant="outline"
-                    size="lg"
+                    variant="ghost"
+                    size="default"
                     isActive={pathname === item.href}
                     tooltip={item.label}
-                    className="w-full h-16 justify-start rounded-md"
+                    className="w-full justify-start rounded-md"
                   >
                     <item.icon />
                     <span>{item.label}</span>
@@ -74,15 +72,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>
-        </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="flex flex-col">
-        <DashboardHeader />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-background">
+      <main className="flex-1 overflow-y-auto bg-gray-50/50">
+          <DashboardHeader />
+          <div className="p-4 md:p-6 lg:p-8">
             {children}
-        </main>
-      </SidebarInset>
+          </div>
+      </main>
     </SidebarProvider>
   );
 }
