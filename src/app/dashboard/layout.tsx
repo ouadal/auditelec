@@ -54,7 +54,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </span>
           </Link>
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="pt-8">
           <SidebarMenu className="space-y-6 p-2">
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.href} data-active={pathname === item.href} className="m-0 p-0 shadow-none">
