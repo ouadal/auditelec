@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarIcon, PlusCircle, Save, Trash2 } from 'lucide-react';
+import { CalendarIcon, Pencil, PlusCircle, Save, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -142,6 +142,9 @@ export default function AuditPage() {
                     <Input defaultValue={room.manager} className="h-8" />
                   </TableCell>
                   <TableCell className="text-right">
+                    <Button variant="ghost" size="icon">
+                        <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => removeRoom(room.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
