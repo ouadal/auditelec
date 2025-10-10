@@ -29,13 +29,13 @@ import {
 import { DashboardHeader } from '@/components/dashboard-header';
 
 const menuItems = [
-  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
   { href: '/dashboard/building-info', label: 'Bâtiment', icon: Building },
   { href: '/dashboard/electrical', label: 'Installation', icon: Zap },
   { href: '/dashboard/audit', label: 'Audit', icon: ClipboardList },
   { href: '/dashboard/inventory', label: 'Inventaire', icon: Package },
   { href: '/dashboard/energy', label: 'Énergie', icon: GaugeCircle },
   { href: '/dashboard/reports', label: 'Rapports', icon: FileDown },
+  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
