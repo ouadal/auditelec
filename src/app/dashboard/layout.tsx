@@ -25,7 +25,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { DashboardHeader } from '@/components/dashboard-header';
-import { Card } from '@/components/ui/card';
 
 const menuItems = [
   { href: '/dashboard/building-info', label: 'Bâtiment', icon: Building },
@@ -57,12 +56,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <SidebarContent>
           <SidebarMenu className="space-y-2 p-2">
             {menuItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
+              <SidebarMenuItem key={item.href} data-active={pathname === item.href}>
                 <Link href={item.href} legacyBehavior passHref>
                   <SidebarMenuButton
                     isActive={pathname === item.href}
                     tooltip={item.label}
-                    className="w-full"
+                    className="w-full justify-start"
                   >
                     <item.icon />
                     <span>{item.label}</span>
@@ -76,7 +75,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <SidebarMenu className="p-2">
              <SidebarMenuItem>
                 <Link href="/login" legacyBehavior passHref>
-                  <SidebarMenuButton tooltip="Se déconnecter" className="w-full">
+                  <SidebarMenuButton tooltip="Se déconnecter" className="w-full justify-start">
                     <LogOut />
                     <span>Se déconnecter</span>
                   </SidebarMenuButton>
