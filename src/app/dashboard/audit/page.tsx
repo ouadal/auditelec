@@ -34,15 +34,33 @@ export default function AuditPage() {
     { id: 1, name: 'Bureau du Directeur', level: '1', manager: 'M. Traoré' },
     { id: 2, name: 'Salle de réunion', level: '1', manager: 'Secrétariat' },
   ]);
+  const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
 
   const addRoom = () => {
     const newId = rooms.length > 0 ? Math.max(...rooms.map(r => r.id)) + 1 : 1;
-    setRooms([...rooms, { id: newId, name: `Nouvelle pièce ${newId}`, level: '0', manager: '' }]);
+    const newRoom = { id: newId, name: `Nouvelle pièce ${newId}`, level: '0', manager: '' };
+    setRooms([...rooms, newRoom]);
+    setEditingRoomId(newId);
   };
 
   const removeRoom = (id: number) => {
     setRooms(rooms.filter(room => room.id !== id));
   };
+
+  const handleEdit = (id: number) => {
+    setEditingRoomId(id);
+  };
+
+  const handleSave = (id: number) => {
+    setEditingRoomId(null);
+    // Here you would typically also save the data to a backend
+  };
+
+  const handleRoomChange = (id: number, field: keyof Omit<Room, 'id'>, value: string) => {
+    setRooms(rooms.map(room => room.id === id ? { ...room, [field]: value } : room));
+  };
+
+  const isEditing = (id: number) => editingRoomId === id;
 
   return (
     <div className="space-y-6">
@@ -124,27 +142,45 @@ export default function AuditPage() {
               {rooms.map((room) => (
                 <TableRow key={room.id}>
                   <TableCell>
-                    <Input defaultValue={room.name} className="h-8" />
+                    {isEditing(room.id) ? (
+                      <Input value={room.name} onChange={(e) => handleRoomChange(room.id, 'name', e.target.value)} className="h-8" />
+                    ) : (
+                      <span>{room.name}</span>
+                    )}
                   </TableCell>
                   <TableCell>
-                    <Select defaultValue={room.level}>
-                      <SelectTrigger className="h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {levels.map(level => (
-                          <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isEditing(room.id) ? (
+                      <Select value={room.level} onValueChange={(value) => handleRoomChange(room.id, 'level', value)}>
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {levels.map(level => (
+                            <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span>{levels.find(l => l.value === room.level)?.label}</span>
+                    )}
                   </TableCell>
                   <TableCell>
-                    <Input defaultValue={room.manager} className="h-8" />
+                     {isEditing(room.id) ? (
+                        <Input value={room.manager} onChange={(e) => handleRoomChange(room.id, 'manager', e.target.value)} className="h-8" />
+                     ) : (
+                        <span>{room.manager}</span>
+                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                        <Pencil className="h-4 w-4" />
-                    </Button>
+                    {isEditing(room.id) ? (
+                      <Button variant="ghost" size="icon" onClick={() => handleSave(room.id)}>
+                          <Save className="h-4 w-4 text-primary" />
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(room.id)}>
+                          <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" onClick={() => removeRoom(room.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
