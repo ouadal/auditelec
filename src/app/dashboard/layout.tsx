@@ -55,14 +55,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu className="space-y-4 p-2">
+          <SidebarMenu className="space-y-2 p-2">
             {menuItems.map((item) => (
-              <SidebarMenuItem key={item.href} data-active={pathname === item.href} className="bg-transparent m-0 p-0 shadow-none">
+              <SidebarMenuItem key={item.href} data-active={pathname === item.href} className="m-0 p-0 shadow-none">
                 <Link href={item.href} legacyBehavior passHref>
                   <SidebarMenuButton
                     isActive={pathname === item.href}
                     tooltip={item.label}
-                    className="w-full justify-start rounded-md"
+                    className="w-full justify-start rounded-md bg-transparent"
                   >
                     <item.icon />
                     <span>{item.label}</span>
