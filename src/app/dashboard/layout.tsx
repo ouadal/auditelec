@@ -25,13 +25,13 @@ import { DashboardHeader } from '@/components/dashboard-header';
 import { Separator } from '@/components/ui/separator';
 
 const menuItems = [
-  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
   { href: '/dashboard/building-info', label: 'Bâtiment', icon: Building },
   { href: '/dashboard/electrical', label: 'Installation', icon: Zap },
   { href: '/dashboard/audit', label: 'Audit', icon: ClipboardList },
   { href: '/dashboard/inventory', label: 'Inventaire', icon: Package },
   { href: '/dashboard/energy', label: 'Énergie', icon: GaugeCircle },
   { href: '/dashboard/reports', label: 'Rapports', icon: FileDown },
+  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -39,7 +39,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar className="bg-card border-r border-gray-200/60">
+      <Sidebar className="border-r border-gray-200/60 bg-card">
         <SidebarHeader className="p-4">
           <Link
             href="/dashboard"
@@ -52,14 +52,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
         </SidebarHeader>
         <Separator />
-        <SidebarContent>
-          <SidebarMenu className="p-2">
+        <SidebarContent className="pt-8">
+          <SidebarMenu className="p-2 space-y-2">
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.href} data-active={pathname === item.href} className="m-0 p-0 shadow-none">
                 <Link href={item.href} legacyBehavior passHref>
                   <SidebarMenuButton
                     variant="ghost"
-                    size="default"
+                    size="lg"
                     isActive={pathname === item.href}
                     tooltip={item.label}
                     className="w-full justify-start rounded-md"
