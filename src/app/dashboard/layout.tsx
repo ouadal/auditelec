@@ -28,13 +28,13 @@ import {
 import { DashboardHeader } from '@/components/dashboard-header';
 
 const menuItems = [
+  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
   { href: '/dashboard/building-info', label: 'Bâtiment', icon: Building },
   { href: '/dashboard/electrical', label: 'Installation', icon: Zap },
   { href: '/dashboard/audit', label: 'Audit', icon: ClipboardList },
   { href: '/dashboard/inventory', label: 'Inventaire', icon: Package },
   { href: '/dashboard/energy', label: 'Énergie', icon: GaugeCircle },
   { href: '/dashboard/reports', label: 'Rapports', icon: FileDown },
-  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -60,9 +60,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <SidebarMenuItem key={item.href} data-active={pathname === item.href} className="m-0 p-0 shadow-none">
                 <Link href={item.href} legacyBehavior passHref>
                   <SidebarMenuButton
+                    variant="outline"
+                    size="lg"
                     isActive={pathname === item.href}
                     tooltip={item.label}
-                    className="w-full justify-start rounded-md bg-transparent"
+                    className="w-full justify-start rounded-md"
                   >
                     <item.icon />
                     <span>{item.label}</span>
@@ -73,17 +75,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <SidebarSeparator />
-          <SidebarMenu className="p-2">
-             <SidebarMenuItem className="bg-transparent m-0 p-0 shadow-none">
-                <Link href="/login" legacyBehavior passHref>
-                  <SidebarMenuButton tooltip="Se déconnecter" className="w-full justify-start rounded-md">
-                    <LogOut />
-                    <span>Se déconnecter</span>
-                  </SidebarMenuButton>
-                </Link>
-            </SidebarMenuItem>
-          </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="flex flex-col">
