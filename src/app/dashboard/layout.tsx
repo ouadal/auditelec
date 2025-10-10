@@ -12,6 +12,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarInset,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
   Building,
@@ -27,13 +28,13 @@ import {
 import { DashboardHeader } from '@/components/dashboard-header';
 
 const menuItems = [
+  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
   { href: '/dashboard/building-info', label: 'Bâtiment', icon: Building },
   { href: '/dashboard/electrical', label: 'Installation', icon: Zap },
   { href: '/dashboard/audit', label: 'Audit', icon: ClipboardList },
   { href: '/dashboard/inventory', label: 'Inventaire', icon: Package },
   { href: '/dashboard/energy', label: 'Énergie', icon: GaugeCircle },
   { href: '/dashboard/reports', label: 'Rapports', icon: FileDown },
-  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -41,8 +42,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader>
+      <Sidebar
+        className="bg-white/95"
+        style={{
+          backgroundImage: 'url("https://picsum.photos/seed/mountains/800/1200")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <SidebarHeader className="border-b border-gray-200/60 p-4">
           <Link
             href="/dashboard"
             className="flex items-center gap-2 text-lg font-semibold"
@@ -54,14 +62,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu className="space-y-2 p-2">
+          <SidebarMenu className="space-y-1 p-2">
             {menuItems.map((item) => (
-              <SidebarMenuItem key={item.href} data-active={pathname === item.href}>
+              <SidebarMenuItem key={item.href} data-active={pathname === item.href} className="bg-transparent m-0 p-0 shadow-none">
                 <Link href={item.href} legacyBehavior passHref>
                   <SidebarMenuButton
                     isActive={pathname === item.href}
                     tooltip={item.label}
-                    className="w-full justify-start"
+                    className="w-full justify-start rounded-md"
                   >
                     <item.icon />
                     <span>{item.label}</span>
@@ -72,10 +80,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
+          <SidebarSeparator />
           <SidebarMenu className="p-2">
-             <SidebarMenuItem>
+             <SidebarMenuItem className="bg-transparent m-0 p-0 shadow-none">
                 <Link href="/login" legacyBehavior passHref>
-                  <SidebarMenuButton tooltip="Se déconnecter" className="w-full justify-start">
+                  <SidebarMenuButton tooltip="Se déconnecter" className="w-full justify-start rounded-md">
                     <LogOut />
                     <span>Se déconnecter</span>
                   </SidebarMenuButton>
