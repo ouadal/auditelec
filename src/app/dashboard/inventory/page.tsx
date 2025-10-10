@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, Save, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
+import { PlusCircle, Save, Trash2, Upload, Image as ImageIcon, Pencil } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 
@@ -24,16 +24,33 @@ export default function InventoryPage() {
     { id: 1, type: 'Climatiseur', name: 'Split LG 12000 BTU', quantity: 4, powerCalcMethod: 'current', powerValue: 5.5 },
     { id: 2, type: 'Ordinateur', name: 'PC de bureau Dell', quantity: 15, powerCalcMethod: 'energy', powerValue: 300 },
   ]);
+  const [editingEquipmentId, setEditingEquipmentId] = useState<number | null>(null);
 
   const addEquipment = () => {
     const newId = equipments.length > 0 ? Math.max(...equipments.map(e => e.id)) + 1 : 1;
-    setEquipments([...equipments, { id: newId, type: '', name: '', quantity: 1, powerCalcMethod: 'current', powerValue: 0 }]);
+    const newEquipment = { id: newId, type: '', name: '', quantity: 1, powerCalcMethod: 'current' as 'current' | 'energy', powerValue: 0 };
+    setEquipments([...equipments, newEquipment]);
+    setEditingEquipmentId(newId);
   };
 
   const removeEquipment = (id: number) => {
     setEquipments(equipments.filter(e => e.id !== id));
   };
   
+  const handleEdit = (id: number) => {
+    setEditingEquipmentId(id);
+  };
+
+  const handleSave = (id: number) => {
+    setEditingEquipmentId(null);
+  };
+
+  const handleEquipmentChange = (id: number, field: keyof Omit<Equipment, 'id'>, value: string | number) => {
+    setEquipments(equipments.map(eq => eq.id === id ? { ...eq, [field]: value } : eq));
+  };
+  
+  const isEditing = (id: number) => editingEquipmentId === id;
+
   const equipmentImage = PlaceHolderImages.find(p => p.id === 'equipment-photo');
 
   return (
@@ -67,8 +84,20 @@ export default function InventoryPage() {
               <TableBody>
                 {equipments.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell><Input defaultValue={item.type} placeholder="ex: Éclairage" /></TableCell>
-                    <TableCell><Input defaultValue={item.name} placeholder="ex: Plafonnier LED" /></TableCell>
+                    <TableCell>
+                      {isEditing(item.id) ? (
+                        <Input value={item.type} onChange={(e) => handleEquipmentChange(item.id, 'type', e.target.value)} placeholder="ex: Éclairage" />
+                      ) : (
+                        <span>{item.type}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {isEditing(item.id) ? (
+                        <Input value={item.name} onChange={(e) => handleEquipmentChange(item.id, 'name', e.target.value)} placeholder="ex: Plafonnier LED" />
+                      ) : (
+                        <span>{item.name}</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Button variant="outline" size="icon" asChild>
                         <label htmlFor={`photo-${item.id}`} className="cursor-pointer">
@@ -77,23 +106,42 @@ export default function InventoryPage() {
                         </label>
                       </Button>
                     </TableCell>
-                    <TableCell><Input type="number" defaultValue={item.quantity} className="w-20" /></TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <RadioGroup defaultValue={item.powerCalcMethod} className="flex gap-4">
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="current" id={`current-${item.id}`} />
-                            <Label htmlFor={`current-${item.id}`} className="text-xs">Courant (A)</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="energy" id={`energy-${item.id}`} />
-                            <Label htmlFor={`energy-${item.id}`} className="text-xs">Énergie (kWh/an)</Label>
-                          </div>
-                        </RadioGroup>
-                        <Input type="number" defaultValue={item.powerValue} className="w-24" />
-                      </div>
+                      {isEditing(item.id) ? (
+                        <Input type="number" value={item.quantity} onChange={(e) => handleEquipmentChange(item.id, 'quantity', parseInt(e.target.value, 10) || 0)} className="w-20" />
+                      ) : (
+                        <span>{item.quantity}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {isEditing(item.id) ? (
+                        <div className="flex items-center gap-2">
+                          <RadioGroup value={item.powerCalcMethod} onValueChange={(value) => handleEquipmentChange(item.id, 'powerCalcMethod', value)} className="flex gap-4">
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="current" id={`current-${item.id}`} />
+                              <Label htmlFor={`current-${item.id}`} className="text-xs">Courant (A)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="energy" id={`energy-${item.id}`} />
+                              <Label htmlFor={`energy-${item.id}`} className="text-xs">Énergie (kWh/an)</Label>
+                            </div>
+                          </RadioGroup>
+                          <Input type="number" value={item.powerValue} onChange={(e) => handleEquipmentChange(item.id, 'powerValue', parseFloat(e.target.value) || 0)} className="w-24" />
+                        </div>
+                      ) : (
+                        <span>{`${item.powerValue} ${item.powerCalcMethod === 'current' ? 'A' : 'kWh/an'}`}</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
+                       {isEditing(item.id) ? (
+                        <Button variant="ghost" size="icon" onClick={() => handleSave(item.id)}>
+                            <Save className="h-4 w-4 text-primary" />
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item.id)}>
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" onClick={() => removeEquipment(item.id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
