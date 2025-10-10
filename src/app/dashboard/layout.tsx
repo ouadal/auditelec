@@ -57,7 +57,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <SidebarContent>
           <SidebarMenu className="space-y-2 p-2">
             {menuItems.map((item) => (
-              <Card key={item.href} className="bg-sidebar-accent">
+              <Card key={item.href} className="bg-transparent border-0 shadow-none">
                 <SidebarMenuItem>
                   <Link href={item.href} legacyBehavior passHref>
                     <SidebarMenuButton
@@ -76,7 +76,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu className="p-2">
-             <Card className="bg-sidebar-accent">
+             <Card className="bg-transparent border-0 shadow-none">
                 <SidebarMenuItem>
                     <Link href="/login" legacyBehavior passHref>
                       <SidebarMenuButton tooltip="Se déconnecter" className="w-full">
