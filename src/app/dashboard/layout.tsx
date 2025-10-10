@@ -14,7 +14,6 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import {
-  AreaChart,
   Building,
   ClipboardList,
   FileDown,
@@ -22,11 +21,11 @@ import {
   Home,
   LogOut,
   Package,
-  Settings,
   Waves,
   Zap,
 } from 'lucide-react';
 import { DashboardHeader } from '@/components/dashboard-header';
+import { Card } from '@/components/ui/card';
 
 const menuItems = [
   { href: '/dashboard/building-info', label: 'Bâtiment', icon: Building },
@@ -56,32 +55,37 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu>
+          <SidebarMenu className="space-y-2 p-2">
             {menuItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href} legacyBehavior passHref>
-                  <SidebarMenuButton
-                    isActive={pathname === item.href}
-                    tooltip={item.label}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
+              <Card key={item.href} className="bg-sidebar-accent">
+                <SidebarMenuItem>
+                  <Link href={item.href} legacyBehavior passHref>
+                    <SidebarMenuButton
+                      isActive={pathname === item.href}
+                      tooltip={item.label}
+                      className="w-full"
+                    >
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              </Card>
             ))}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <SidebarMenu>
-            <SidebarMenuItem>
-                <Link href="/login" legacyBehavior passHref>
-                  <SidebarMenuButton tooltip="Se déconnecter">
-                    <LogOut />
-                    <span>Se déconnecter</span>
-                  </SidebarMenuButton>
-                </Link>
-            </SidebarMenuItem>
+          <SidebarMenu className="p-2">
+             <Card className="bg-sidebar-accent">
+                <SidebarMenuItem>
+                    <Link href="/login" legacyBehavior passHref>
+                      <SidebarMenuButton tooltip="Se déconnecter" className="w-full">
+                        <LogOut />
+                        <span>Se déconnecter</span>
+                      </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+              </Card>
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
