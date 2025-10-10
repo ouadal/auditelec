@@ -28,13 +28,13 @@ import {
 import { DashboardHeader } from '@/components/dashboard-header';
 
 const menuItems = [
-  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
   { href: '/dashboard/building-info', label: 'Bâtiment', icon: Building },
   { href: '/dashboard/electrical', label: 'Installation', icon: Zap },
   { href: '/dashboard/audit', label: 'Audit', icon: ClipboardList },
   { href: '/dashboard/inventory', label: 'Inventaire', icon: Package },
   { href: '/dashboard/energy', label: 'Énergie', icon: GaugeCircle },
   { href: '/dashboard/reports', label: 'Rapports', icon: FileDown },
+  { href: '/dashboard', label: 'Tableau de Bord', icon: Home },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu className="space-y-1 p-2">
+          <SidebarMenu className="space-y-2 p-2">
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.href} data-active={pathname === item.href} className="bg-transparent m-0 p-0 shadow-none">
                 <Link href={item.href} legacyBehavior passHref>
