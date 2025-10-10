@@ -64,6 +64,11 @@ const energyData = [
     { name: 'Mai', 'Énergie (MWh)': 45, 'CEET (MWh)': 38 },
     { name: 'Jui', 'Énergie (MWh)': 48, 'CEET (MWh)': 40 },
     { name: 'Jul', 'Énergie (MWh)': 50, 'CEET (MWh)': 42 },
+    { name: 'Aoû', 'Énergie (MWh)': 47, 'CEET (MWh)': 41 },
+    { name: 'Sep', 'Énergie (MWh)': 44, 'CEET (MWh)': 39 },
+    { name: 'Oct', 'Énergie (MWh)': 41, 'CEET (MWh)': 37 },
+    { name: 'Nov', 'Énergie (MWh)': 39, 'CEET (MWh)': 35 },
+    { name: 'Déc', 'Énergie (MWh)': 36, 'CEET (MWh)': 31 },
 ];
 
 const equipmentData = [
@@ -74,7 +79,7 @@ const equipmentData = [
 ];
 
 export default function DashboardPage() {
-  return (
+    return (
     <div className="flex flex-col gap-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
