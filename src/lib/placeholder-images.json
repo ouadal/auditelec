@@ -13,16 +13,178 @@
       "imageHint": "modern building"
     },
     {
+      "id": "equipment-photo",
+      "description": "Photo of an office equipment",
+      "imageUrl": "https://picsum.photos/seed/equip1/400/300",
+      "imageHint": "office equipment"
+    },
+    {
       "id": "electrical-panel",
       "description": "Photo of an electrical panel",
       "imageUrl": "https://picsum.photos/seed/panel1/400/300",
       "imageHint": "electrical panel"
     },
     {
-      "id": "equipment-photo",
-      "description": "Photo of an office equipment",
-      "imageUrl": "https://picsum.photos/seed/equip1/400/300",
-      "imageHint": "office equipment"
+      "id": "electrical-panel-2",
+      "description": "Photo of an electrical panel - view 2",
+      "imageUrl": "https://picsum.photos/seed/panel2/400/300",
+      "imageHint": "electrical panel interior"
+    },
+    {
+      "id": "electrical-panel-3",
+      "description": "Photo of an electrical panel - view 3",
+      "imageUrl": "https://picsum.photos/seed/panel3/400/300",
+      "imageHint": "electrical panel components"
+    },
+    {
+      "id": "electrical-panel-4",
+      "description": "Photo of an electrical panel - view 4",
+      "imageUrl": "https://picsum.photos/seed/panel4/400/300",
+      "imageHint": "electrical panel wiring"
+    },
+    {
+      "id": "cable-photo-1",
+      "description": "Photo of electrical cables - view 1",
+      "imageUrl": "https://picsum.photos/seed/cable1/400/300",
+      "imageHint": "electrical cables"
+    },
+    {
+      "id": "cable-photo-2",
+      "description": "Photo of electrical cables - view 2",
+      "imageUrl": "https://picsum.photos/seed/cable2/400/300",
+      "imageHint": "electrical cable installation"
+    },
+    {
+      "id": "cable-photo-3",
+      "description": "Photo of electrical cables - view 3",
+      "imageUrl": "https://picsum.photos/seed/cable3/400/300",
+      "imageHint": "electrical cable routing"
+    },
+    {
+      "id": "cable-photo-4",
+      "description": "Photo of electrical cables - view 4",
+      "imageUrl": "https://picsum.photos/seed/cable4/400/300",
+      "imageHint": "electrical cable connections"
+    },
+    {
+      "id": "outlet-photo-1",
+      "description": "Photo of electrical outlet - view 1",
+      "imageUrl": "https://picsum.photos/seed/outlet1/400/300",
+      "imageHint": "electrical outlet"
+    },
+    {
+      "id": "outlet-photo-2",
+      "description": "Photo of electrical outlet - view 2",
+      "imageUrl": "https://picsum.photos/seed/outlet2/400/300",
+      "imageHint": "electrical outlet installation"
+    },
+    {
+      "id": "outlet-photo-3",
+      "description": "Photo of electrical outlet - view 3",
+      "imageUrl": "https://picsum.photos/seed/outlet3/400/300",
+      "imageHint": "electrical outlet wiring"
+    },
+    {
+      "id": "outlet-photo-4",
+      "description": "Photo of electrical outlet - view 4",
+      "imageUrl": "https://picsum.photos/seed/outlet4/400/300",
+      "imageHint": "electrical outlet condition"
+    },
+    {
+      "id": "switch-photo-1",
+      "description": "Photo of electrical switch - view 1",
+      "imageUrl": "https://picsum.photos/seed/switch1/400/300",
+      "imageHint": "electrical switch"
+    },
+    {
+      "id": "switch-photo-2",
+      "description": "Photo of electrical switch - view 2",
+      "imageUrl": "https://picsum.photos/seed/switch2/400/300",
+      "imageHint": "electrical switch installation"
+    },
+    {
+      "id": "switch-photo-3",
+      "description": "Photo of electrical switch - view 3",
+      "imageUrl": "https://picsum.photos/seed/switch3/400/300",
+      "imageHint": "electrical switch wiring"
+    },
+    {
+      "id": "switch-photo-4",
+      "description": "Photo of electrical switch - view 4",
+      "imageUrl": "https://picsum.photos/seed/switch4/400/300",
+      "imageHint": "electrical switch condition"
+    },
+    {
+      "id": "ground-meter-1",
+      "description": "Photo of ground meter - view 1",
+      "imageUrl": "https://picsum.photos/seed/ground1/400/300",
+      "imageHint": "ground meter measurement"
+    },
+    {
+      "id": "ground-meter-2",
+      "description": "Photo of ground meter - view 2",
+      "imageUrl": "https://picsum.photos/seed/ground2/400/300",
+      "imageHint": "ground meter connection"
+    },
+    {
+      "id": "ground-meter-3",
+      "description": "Photo of ground meter - view 3",
+      "imageUrl": "https://picsum.photos/seed/ground3/400/300",
+      "imageHint": "ground meter installation"
+    },
+    {
+      "id": "ground-meter-4",
+      "description": "Photo of ground meter - view 4",
+      "imageUrl": "https://picsum.photos/seed/ground4/400/300",
+      "imageHint": "ground meter reading"
+    },
+    {
+      "id": "ground-pc-1",
+      "description": "Photo of ground in PC - view 1",
+      "imageUrl": "https://picsum.photos/seed/groundpc1/400/300",
+      "imageHint": "ground connection in PC"
+    },
+    {
+      "id": "ground-pc-2",
+      "description": "Photo of ground in PC - view 2",
+      "imageUrl": "https://picsum.photos/seed/groundpc2/400/300",
+      "imageHint": "ground wire in PC"
+    },
+    {
+      "id": "ground-pc-3",
+      "description": "Photo of ground in PC - view 3",
+      "imageUrl": "https://picsum.photos/seed/groundpc3/400/300",
+      "imageHint": "ground installation in PC"
+    },
+    {
+      "id": "ground-pc-4",
+      "description": "Photo of ground in PC - view 4",
+      "imageUrl": "https://picsum.photos/seed/groundpc4/400/300",
+      "imageHint": "ground condition in PC"
+    },
+    {
+      "id": "differential-1",
+      "description": "Photo of differential breaker - view 1",
+      "imageUrl": "https://picsum.photos/seed/diff1/400/300",
+      "imageHint": "differential breaker"
+    },
+    {
+      "id": "differential-2",
+      "description": "Photo of differential breaker - view 2",
+      "imageUrl": "https://picsum.photos/seed/diff2/400/300",
+      "imageHint": "differential breaker installation"
+    },
+    {
+      "id": "differential-3",
+      "description": "Photo of differential breaker - view 3",
+      "imageUrl": "https://picsum.photos/seed/diff3/400/300",
+      "imageHint": "differential breaker wiring"
+    },
+    {
+      "id": "differential-4",
+      "description": "Photo of differential breaker - view 4",
+      "imageUrl": "https://picsum.photos/seed/diff4/400/300",
+      "imageHint": "differential breaker condition"
     }
   ]
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Bell,
   Home,
@@ -25,11 +25,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useToast } from '@/hooks/use-toast';
+import { auth } from '../../services/auth';
 import Image from 'next/image';
 
 const pageTitles: { [key: string]: string } = {
   '/dashboard': 'Tableau de Bord',
-  '/dashboard/building-info': 'Informations Générales',
+  '/dashboard/clients': 'Gestion des Clients',
+  '/dashboard/building-info': 'Gestion des Bâtiments',
   '/dashboard/electrical': 'Installation Électrique',
   '/dashboard/audit': 'Configuration de l\'Audit',
   '/dashboard/inventory': 'Inventaire des Équipements',
@@ -40,7 +43,33 @@ const pageTitles: { [key: string]: string } = {
 
 export function DashboardHeader() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [user, setUser] = useState<any>(null);
   const avatarImage = PlaceHolderImages.find(p => p.id === 'user-avatar-1');
+
+  useEffect(() => {
+    const currentUser = auth.getCurrentUser();
+    setUser(currentUser);
+  }, []);
+
+  const handleLogout = () => {
+    try {
+      auth.logout();
+      toast({
+        title: "Déconnexion réussie",
+        description: "À bientôt !",
+      });
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la déconnexion",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <header className="flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6 sticky top-0 z-30">
@@ -81,7 +110,9 @@ export function DashboardHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Mon Compte</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              {user ? `${user.prenom} ${user.nom}` : 'Mon Compte'}
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
@@ -92,7 +123,7 @@ export function DashboardHeader() {
               <span>Paramètres</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Se déconnecter</span>
             </DropdownMenuItem>

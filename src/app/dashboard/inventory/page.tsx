@@ -15,20 +15,28 @@ interface Equipment {
   type: string;
   name: string;
   quantity: number;
-  powerCalcMethod: 'current' | 'energy';
+  powerCalcMethod: 'power' | 'current' | 'energy';
   powerValue: number;
 }
 
 export default function InventoryPage() {
   const [equipments, setEquipments] = useState<Equipment[]>([
-    { id: 1, type: 'Climatiseur', name: 'Split LG 12000 BTU', quantity: 4, powerCalcMethod: 'current', powerValue: 5.5 },
-    { id: 2, type: 'Ordinateur', name: 'PC de bureau Dell', quantity: 15, powerCalcMethod: 'energy', powerValue: 300 },
+    { id: 1, type: 'Climatiseur', name: 'Split LG 12000 BTU', quantity: 4, powerCalcMethod: 'power', powerValue: 1200 },
+    { id: 2, type: 'Ordinateur', name: 'PC de bureau Dell', quantity: 15, powerCalcMethod: 'power', powerValue: 300 },
   ]);
+
   const [editingEquipmentId, setEditingEquipmentId] = useState<number | null>(null);
 
   const addEquipment = () => {
     const newId = equipments.length > 0 ? Math.max(...equipments.map(e => e.id)) + 1 : 1;
-    const newEquipment = { id: newId, type: '', name: '', quantity: 1, powerCalcMethod: 'current' as 'current' | 'energy', powerValue: 0 };
+    const newEquipment = { 
+      id: newId, 
+      type: '', 
+      name: '', 
+      quantity: 1, 
+      powerCalcMethod: 'power' as 'power' | 'current' | 'energy', 
+      powerValue: 0 
+    };
     setEquipments([...equipments, newEquipment]);
     setEditingEquipmentId(newId);
   };
@@ -36,7 +44,7 @@ export default function InventoryPage() {
   const removeEquipment = (id: number) => {
     setEquipments(equipments.filter(e => e.id !== id));
   };
-  
+
   const handleEdit = (id: number) => {
     setEditingEquipmentId(id);
   };
@@ -48,8 +56,16 @@ export default function InventoryPage() {
   const handleEquipmentChange = (id: number, field: keyof Omit<Equipment, 'id'>, value: string | number) => {
     setEquipments(equipments.map(eq => eq.id === id ? { ...eq, [field]: value } : eq));
   };
-  
+
   const isEditing = (id: number) => editingEquipmentId === id;
+
+  const getUnit = (method: 'power' | 'current' | 'energy') => {
+    switch (method) {
+      case 'power': return 'W';
+      case 'current': return 'A';
+      case 'energy': return 'kWh/an';
+    }
+  };
 
   const equipmentImage = PlaceHolderImages.find(p => p.id === 'equipment-photo');
 
@@ -77,7 +93,7 @@ export default function InventoryPage() {
                   <TableHead>Nom</TableHead>
                   <TableHead>Photo</TableHead>
                   <TableHead>Quantité</TableHead>
-                  <TableHead className="w-[300px]">Calcul Puissance</TableHead>
+                  <TableHead className="w-[350px]">Calcul Puissance</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -86,14 +102,22 @@ export default function InventoryPage() {
                   <TableRow key={item.id}>
                     <TableCell>
                       {isEditing(item.id) ? (
-                        <Input value={item.type} onChange={(e) => handleEquipmentChange(item.id, 'type', e.target.value)} placeholder="ex: Éclairage" />
+                        <Input 
+                          value={item.type} 
+                          onChange={(e) => handleEquipmentChange(item.id, 'type', e.target.value)} 
+                          placeholder="ex: Éclairage" 
+                        />
                       ) : (
                         <span>{item.type}</span>
                       )}
                     </TableCell>
                     <TableCell>
                       {isEditing(item.id) ? (
-                        <Input value={item.name} onChange={(e) => handleEquipmentChange(item.id, 'name', e.target.value)} placeholder="ex: Plafonnier LED" />
+                        <Input 
+                          value={item.name} 
+                          onChange={(e) => handleEquipmentChange(item.id, 'name', e.target.value)} 
+                          placeholder="ex: Plafonnier LED" 
+                        />
                       ) : (
                         <span>{item.name}</span>
                       )}
@@ -102,13 +126,18 @@ export default function InventoryPage() {
                       <Button variant="outline" size="icon" asChild>
                         <label htmlFor={`photo-${item.id}`} className="cursor-pointer">
                           <ImageIcon className="h-4 w-4" />
-                           <input type="file" id={`photo-${item.id}`} className="sr-only" />
+                          <input type="file" id={`photo-${item.id}`} className="sr-only" />
                         </label>
                       </Button>
                     </TableCell>
                     <TableCell>
                       {isEditing(item.id) ? (
-                        <Input type="number" value={item.quantity} onChange={(e) => handleEquipmentChange(item.id, 'quantity', parseInt(e.target.value, 10) || 0)} className="w-20" />
+                        <Input 
+                          type="number" 
+                          value={item.quantity} 
+                          onChange={(e) => handleEquipmentChange(item.id, 'quantity', parseInt(e.target.value, 10) || 0)} 
+                          className="w-20" 
+                        />
                       ) : (
                         <span>{item.quantity}</span>
                       )}
@@ -116,7 +145,15 @@ export default function InventoryPage() {
                     <TableCell>
                       {isEditing(item.id) ? (
                         <div className="flex items-center gap-2">
-                          <RadioGroup value={item.powerCalcMethod} onValueChange={(value) => handleEquipmentChange(item.id, 'powerCalcMethod', value)} className="flex gap-4">
+                          <RadioGroup 
+                            value={item.powerCalcMethod} 
+                            onValueChange={(value) => handleEquipmentChange(item.id, 'powerCalcMethod', value)} 
+                            className="flex gap-4"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="power" id={`power-${item.id}`} />
+                              <Label htmlFor={`power-${item.id}`} className="text-xs">Puissance (W)</Label>
+                            </div>
                             <div className="flex items-center space-x-2">
                               <RadioGroupItem value="current" id={`current-${item.id}`} />
                               <Label htmlFor={`current-${item.id}`} className="text-xs">Courant (A)</Label>
@@ -126,20 +163,25 @@ export default function InventoryPage() {
                               <Label htmlFor={`energy-${item.id}`} className="text-xs">Énergie (kWh/an)</Label>
                             </div>
                           </RadioGroup>
-                          <Input type="number" value={item.powerValue} onChange={(e) => handleEquipmentChange(item.id, 'powerValue', parseFloat(e.target.value) || 0)} className="w-24" />
+                          <Input 
+                            type="number" 
+                            value={item.powerValue} 
+                            onChange={(e) => handleEquipmentChange(item.id, 'powerValue', parseFloat(e.target.value) || 0)} 
+                            className="w-24" 
+                          />
                         </div>
                       ) : (
-                        <span>{`${item.powerValue} ${item.powerCalcMethod === 'current' ? 'A' : 'kWh/an'}`}</span>
+                        <span>{`${item.powerValue} ${getUnit(item.powerCalcMethod)}`}</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                       {isEditing(item.id) ? (
+                      {isEditing(item.id) ? (
                         <Button variant="ghost" size="icon" onClick={() => handleSave(item.id)}>
-                            <Save className="h-4 w-4 text-primary" />
+                          <Save className="h-4 w-4 text-primary" />
                         </Button>
                       ) : (
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(item.id)}>
-                            <Pencil className="h-4 w-4" />
+                          <Pencil className="h-4 w-4" />
                         </Button>
                       )}
                       <Button variant="ghost" size="icon" onClick={() => removeEquipment(item.id)}>
