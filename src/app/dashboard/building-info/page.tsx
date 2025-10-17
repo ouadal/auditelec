@@ -21,7 +21,8 @@ import {
   Eye,
   Settings,
   Edit,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
@@ -52,14 +53,21 @@ interface BatimentData {
 
 interface Batiment {
   id: number;
+  client_id: number;
   nom_batiment: string;
   adresse_site: string;
   commune: string;
   annee_mise_service: number;
   type_fonction: string;
-  surface_totale: number;
-  nb_travailleurs: number;
+  surface_construite: number;
+  type_bail: string;
   nombre_etages: number;
+  forme_batiment: string;
+  hauteur_moyenne: number;
+  perimetre: number;
+  nb_travailleurs: number;
+  surface_climatisee: number;
+  surface_totale: number;
   client?: {
     id: number;
     contact_nom: string;
@@ -78,6 +86,7 @@ export default function BuildingInfoPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [batiments, setBatiments] = useState<Batiment[]>([]);
   const [showForm, setShowForm] = useState(!!batimentId);
+  const [editingId, setEditingId] = useState<number | null>(batimentId ? parseInt(batimentId) : null);
   const [formData, setFormData] = useState<BatimentData>({
     client_id: 0,
     nom_batiment: '',
@@ -96,22 +105,33 @@ export default function BuildingInfoPage() {
     surface_totale: 0,
   });
 
-  const isEditing = !!batimentId;
+  const isEditing = !!editingId;
 
   // Charger les données initiales
   useEffect(() => {
     const loadData = async () => {
+      const startTime = Date.now();
       try {
-        // Charger les clients
-        const clientsResponse = await apiHelpers.clients.getAll();
+        console.log('🚀 Début du chargement des données...');
+        
+        // Charger clients et bâtiments EN PARALLÈLE pour gagner du temps
+        const [clientsResponse, batimentsResponse] = await Promise.all([
+          apiHelpers.clients.getAll(),
+          apiHelpers.batiments.getAll()
+        ]);
+        
+        const loadTime = Date.now() - startTime;
+        console.log(`⚡ Données chargées en ${loadTime}ms`);
+        
+        // Traiter les clients (structure des routes protégées)
         setClients(Array.isArray(clientsResponse.data) ? clientsResponse.data : []);
-
-        // Charger les bâtiments
-        const batimentsResponse = await apiHelpers.batiments.getAll();
-        setBatiments(Array.isArray(batimentsResponse.data.data) ? batimentsResponse.data.data : []);
+        
+        // Traiter les bâtiments (structure des routes protégées)
+        setBatiments(Array.isArray(batimentsResponse.data.data) ? batimentsResponse.data.data : batimentsResponse.data || []);
 
         // Si en mode édition, charger le bâtiment
         if (batimentId) {
+          setEditingId(parseInt(batimentId));
           const batimentResponse = await apiHelpers.batiments.getById(batimentId);
           console.log('Réponse bâtiment:', batimentResponse.data); // Debug
           
@@ -159,13 +179,15 @@ export default function BuildingInfoPage() {
           }
         }
       } catch (error) {
-        console.error('Erreur lors du chargement:', error);
+        console.error('❌ Erreur lors du chargement:', error);
         toast({
           title: "Erreur",
           description: "Erreur lors du chargement des données",
           variant: "destructive",
         });
       } finally {
+        const totalTime = Date.now() - startTime;
+        console.log(`🏁 Chargement terminé en ${totalTime}ms`);
         setLoadingBatiments(false);
       }
     };
@@ -201,6 +223,11 @@ export default function BuildingInfoPage() {
   };
 
   const handleSubmit = async () => {
+    console.log('💾 handleSubmit déclenché');
+    console.log('📝 Données du formulaire:', formData);
+    console.log('🔄 Mode édition:', isEditing);
+    console.log('🆔 batimentId:', batimentId);
+    
     // Validation basique
     if (!formData.nom_batiment || !formData.adresse_site || !formData.commune) {
       toast({
@@ -224,15 +251,24 @@ export default function BuildingInfoPage() {
 
     try {
       if (isEditing) {
+        console.log('🔄 Mode mise à jour - Appel API update avec ID:', batimentId);
+        
+        // Utiliser l'ID en cours d'édition
+        const idToUpdate = editingId!;
+        console.log('🆔 ID utilisé pour la mise à jour:', idToUpdate);
+        
         // Mise à jour
-        await apiHelpers.batiments.update(batimentId!, formData);
+        const response = await apiHelpers.batiments.update(idToUpdate, formData);
+        console.log('✅ Réponse API update:', response);
         toast({
           title: "Succès",
           description: "Bâtiment mis à jour avec succès",
         });
       } else {
+        console.log('➕ Mode création - Appel API create');
         // Création
-        await apiHelpers.batiments.create(formData);
+        const response = await apiHelpers.batiments.create(formData);
+        console.log('✅ Réponse API create:', response);
         toast({
           title: "Succès",
           description: "Bâtiment créé avec succès",
@@ -244,9 +280,14 @@ export default function BuildingInfoPage() {
       const batimentsResponse = await apiHelpers.batiments.getAll();
       setBatiments(Array.isArray(batimentsResponse.data.data) ? batimentsResponse.data.data : []);
       
-      // Fermer le formulaire si création
+      // Fermer le formulaire et réinitialiser
       if (!isEditing) {
         setShowForm(false);
+      } else {
+        // En mode édition, retourner à la liste
+        setShowForm(false);
+        setEditingId(null);
+        router.push('/dashboard/building-info');
       }
     } catch (error: any) {
       console.error('Erreur lors de la sauvegarde:', error);
@@ -271,12 +312,38 @@ export default function BuildingInfoPage() {
   };
 
   const handleEditBatiment = (batiment: Batiment) => {
+    console.log('🔧 Modification du bâtiment:', batiment.nom_batiment, 'ID:', batiment.id);
+    
+    // Remplir le formulaire avec les données du bâtiment
+    setFormData({
+      id: batiment.id,
+      client_id: batiment.client_id || 0,
+      nom_batiment: batiment.nom_batiment || '',
+      adresse_site: batiment.adresse_site || '',
+      commune: batiment.commune || '',
+      annee_mise_service: batiment.annee_mise_service || new Date().getFullYear(),
+      type_fonction: batiment.type_fonction || '',
+      surface_construite: batiment.surface_construite || 0,
+      type_bail: batiment.type_bail || '',
+      nombre_etages: batiment.nombre_etages || 0,
+      forme_batiment: batiment.forme_batiment || '',
+      hauteur_moyenne: batiment.hauteur_moyenne || 0,
+      perimetre: batiment.perimetre || 0,
+      nb_travailleurs: batiment.nb_travailleurs || 0,
+      surface_climatisee: batiment.surface_climatisee || 0,
+      surface_totale: batiment.surface_totale || 0,
+    });
+    
+    // Définir l'ID en cours d'édition et ouvrir le formulaire
+    setEditingId(batiment.id);
+    setShowForm(true);
     router.push(`/dashboard/building-info?id=${batiment.id}`);
   };
 
   const handleNewBatiment = () => {
     // Réinitialiser l'URL et le formulaire
     router.push('/dashboard/building-info');
+    setEditingId(null);
     resetForm();
     setShowForm(true);
   };
@@ -284,14 +351,79 @@ export default function BuildingInfoPage() {
   const handleCancelForm = () => {
     if (isEditing) {
       router.push('/dashboard/building-info');
+      setEditingId(null);
     } else {
       setShowForm(false);
       resetForm();
     }
   };
 
+  const handleDeleteBatiment = async (batiment: Batiment, e: React.MouseEvent) => {
+    e.stopPropagation(); // Empêcher la sélection de la carte
+    
+    console.log('🗑️ Tentative de suppression du bâtiment:', batiment.nom_batiment, 'ID:', batiment.id);
+    
+    // Confirmation de suppression
+    const confirmDelete = window.confirm(
+      `Êtes-vous sûr de vouloir supprimer le bâtiment "${batiment.nom_batiment}" ?\n\nCette action est irréversible et supprimera également toutes les pièces associées.`
+    );
+    
+    if (!confirmDelete) {
+      console.log('❌ Suppression annulée par l\'utilisateur');
+      return;
+    }
+    
+    console.log('✅ Suppression confirmée, appel API...');
+
+    try {
+      setLoading(true);
+      
+      console.log('📡 Appel API de suppression pour ID:', batiment.id);
+      
+      // Appel API pour supprimer le bâtiment
+      const response = await apiHelpers.batiments.delete(batiment.id);
+      
+      console.log('✅ Réponse API suppression:', response);
+      
+      // Mettre à jour la liste locale
+      setBatiments(batiments.filter(b => b.id !== batiment.id));
+      
+      toast({
+        title: "Succès",
+        description: `Bâtiment "${batiment.nom_batiment}" supprimé avec succès`,
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Erreur lors de la suppression:', error);
+      console.error('❌ Détails de l\'erreur:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      let errorMessage = "Erreur lors de la suppression du bâtiment";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 404) {
+        errorMessage = "Bâtiment non trouvé";
+      } else if (error.response?.status === 409) {
+        errorMessage = "Impossible de supprimer : le bâtiment contient des données liées";
+      }
+      
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -560,7 +692,7 @@ export default function BuildingInfoPage() {
             <div>
               <h2 className="text-xl font-semibold">Bâtiments existants</h2>
               <p className="text-sm text-muted-foreground">
-                Cliquez sur une carte pour modifier le bâtiment
+                Cliquez sur une carte pour voir les pièces, ou utilisez les icônes pour modifier/supprimer
               </p>
             </div>
             <p className="text-muted-foreground">
@@ -594,7 +726,7 @@ export default function BuildingInfoPage() {
                       ? 'ring-2 ring-primary bg-primary/5' 
                       : ''
                   }`}
-                  onClick={() => handleEditBatiment(batiment)}
+                  onClick={() => handleVoirPieces(batiment.id)}
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -644,19 +776,7 @@ export default function BuildingInfoPage() {
                       )}
                     </div>
 
-                    <div className="flex space-x-2 pt-2">
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="flex-1"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Empêcher la sélection de la carte
-                          handleVoirPieces(batiment.id);
-                        }}
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        Voir Pièces
-                      </Button>
+                    <div className="flex justify-end space-x-2 pt-2">
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -664,8 +784,18 @@ export default function BuildingInfoPage() {
                           e.stopPropagation(); // Empêcher la double sélection
                           handleEditBatiment(batiment);
                         }}
+                        title="Modifier le bâtiment"
                       >
                         <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => handleDeleteBatiment(batiment, e)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        title="Supprimer le bâtiment"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </CardContent>

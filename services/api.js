@@ -9,14 +9,37 @@ const api = axios.create({
   },
 });
 
+// Variable pour tracker si le CSRF token a été initialisé
+let csrfInitialized = false;
+
+// Fonction pour initialiser le CSRF token
+const initializeCsrf = async () => {
+  if (!csrfInitialized) {
+    try {
+      await axios.get('http://127.0.0.1:8000/sanctum/csrf-cookie', {
+        withCredentials: true
+      });
+      csrfInitialized = true;
+    } catch (error) {
+      console.warn('Impossible d\'initialiser le CSRF token:', error);
+    }
+  }
+};
+
 // Intercepteur pour les requêtes
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Initialiser le CSRF token pour les requêtes POST/PUT/DELETE
+    if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
+      await initializeCsrf();
+    }
+    
     // Ajouter le token d'authentification si disponible
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
     return config;
   },
   (error) => {

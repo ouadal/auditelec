@@ -89,8 +89,16 @@ export default function ClientsPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log("🔄 Chargement des clients (serveur lent, patience...)");
+        const startTime = Date.now();
+
         // Charger les clients
         const clientsResponse = await apiHelpers.clients.getAll();
+        
+        const duration = Date.now() - startTime;
+        const fromCache = duration < 100;
+        console.log(`✅ Clients chargés en ${duration}ms ${fromCache ? '(cache)' : '(API)'}`);
+        
         setClients(
           Array.isArray(clientsResponse.data) ? clientsResponse.data : []
         );
@@ -117,10 +125,10 @@ export default function ClientsPage() {
           }
         }
       } catch (error) {
-        console.error("Erreur lors du chargement:", error);
+        console.error("❌ Erreur lors du chargement des clients:", error);
         toast({
-          title: "Erreur",
-          description: "Erreur lors du chargement des données",
+          title: "Erreur de chargement",
+          description: "Le serveur met du temps à répondre. Les données en cache seront utilisées si disponibles.",
           variant: "destructive",
         });
       } finally {
@@ -187,14 +195,14 @@ export default function ClientsPage() {
 
     try {
       if (isEditing) {
-        // Mise à jour
+        // Mise à jour avec cache
         await apiHelpers.clients.update(clientId!, formData);
         toast({
           title: "Succès",
           description: "Client mis à jour avec succès",
         });
       } else {
-        // Création
+        // Création avec cache
         await apiHelpers.clients.create(formData);
         toast({
           title: "Succès",
@@ -203,7 +211,7 @@ export default function ClientsPage() {
         resetForm();
       }
 
-      // Recharger la liste des clients
+      // Recharger la liste des clients (utilisera le cache invalidé)
       const clientsResponse = await apiHelpers.clients.getAll();
       setClients(
         Array.isArray(clientsResponse.data) ? clientsResponse.data : []
@@ -253,6 +261,8 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6">
+
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiHelpers } from "../../../../services/apiHelpers"; // 🔗 connexion au backend Laravel
+import { apiHelpers } from "../../../../services/apiHelpers";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -48,72 +48,106 @@ interface Room {
 }
 
 const levels = [
-  { value: 'RDC', label: 'RDC (Niveau 0)' },
-  { value: 'R+1', label: 'R+1 (Niveau 1)' },
-  { value: 'R+2', label: 'R+2 (Niveau 2)' },
-  { value: 'R+3', label: 'R+3 (Niveau 3)' },
-  { value: 'R+4', label: 'R+4 (Niveau 4)' },
-  { value: 'R+5', label: 'R+5 (Niveau 5)' },
-  { value: 'R+6', label: 'R+6 (Niveau 6)' },
-  { value: 'R+7', label: 'R+7 (Niveau 7)' },
+  { value: "RDC", label: "RDC (Niveau 0)" },
+  { value: "R+1", label: "R+1 (Niveau 1)" },
+  { value: "R+2", label: "R+2 (Niveau 2)" },
+  { value: "R+3", label: "R+3 (Niveau 3)" },
+  { value: "R+4", label: "R+4 (Niveau 4)" },
+  { value: "R+5", label: "R+5 (Niveau 5)" },
+  { value: "R+6", label: "R+6 (Niveau 6)" },
+  { value: "R+7", label: "R+7 (Niveau 7)" },
 ];
-
 
 export default function AuditPage() {
   const { toast } = useToast();
   const [date] = useState<Date>(new Date()); // Date automatique, non modifiable
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState(
+    "Chargement des données..."
+  );
   const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
   const [selectedBatiment, setSelectedBatiment] = useState<any>(null);
   const [batimentId, setBatimentId] = useState<string | null>(null);
   const [availableBatiments, setAvailableBatiments] = useState<any[]>([]);
 
-  // ✅ Charger les pièces depuis le backend Laravel
+  // ✅ Charger les données depuis le backend Laravel
   useEffect(() => {
-    // Get batiment_id from URL params if available
+    // Récupérer le batiment_id depuis l'URL si présent (venant d'une autre page)
     const urlParams = new URLSearchParams(window.location.search);
     const currentBatimentId = urlParams.get("batiment_id");
     setBatimentId(currentBatimentId);
 
-    const loadPieces = async () => {
+    const loadData = async () => {
       try {
-        // First test if API is available
-        await apiHelpers.test();
+        console.log("🚀 Chargement des données...");
+        setLoadingMessage("Chargement des bâtiments...");
 
-        // Load available buildings for selection
+        // Charger la liste des bâtiments
         const batimentsResponse = await apiHelpers.batiments.getAll();
-        setAvailableBatiments(
-          Array.isArray(batimentsResponse.data.data)
-            ? batimentsResponse.data.data
-            : []
+        const batimentsList = Array.isArray(batimentsResponse.data.data)
+          ? batimentsResponse.data.data
+          : batimentsResponse.data || [];
+
+        setAvailableBatiments(batimentsList);
+
+        // Si un bâtiment est spécifié dans l'URL, le sélectionner automatiquement
+        if (currentBatimentId && batimentsList.length > 0) {
+          console.log("🎯 Bâtiment spécifié dans l'URL:", currentBatimentId);
+
+          // Trouver le bâtiment dans la liste
+          const selectedBat = batimentsList.find(
+            (b: any) => b.id.toString() === currentBatimentId
+          );
+
+          if (selectedBat) {
+            setSelectedBatiment(selectedBat);
+            console.log(
+              "✅ Bâtiment auto-sélectionné:",
+              selectedBat.nom_batiment
+            );
+
+            // Charger les pièces de ce bâtiment
+            setLoadingMessage("Chargement des pièces...");
+            const piecesResponse = await apiHelpers.pieces.getByBatiment(
+              currentBatimentId
+            );
+
+            let piecesData = [];
+            if (piecesResponse.data.success && piecesResponse.data.data) {
+              piecesData = piecesResponse.data.data.pieces || [];
+            } else if (Array.isArray(piecesResponse.data)) {
+              piecesData = piecesResponse.data;
+            } else if (piecesResponse.data.pieces) {
+              piecesData = piecesResponse.data.pieces;
+            }
+
+            setRooms(piecesData);
+            console.log(
+              `✅ ${piecesData.length} pièces chargées automatiquement`
+            );
+          } else {
+            console.warn(
+              "⚠️ Bâtiment non trouvé dans la liste:",
+              currentBatimentId
+            );
+            setRooms([]);
+          }
+        } else {
+          // Pas de bâtiment spécifié, commencer avec une liste vide
+          setRooms([]);
+          console.log(
+            "✅ Aucun bâtiment spécifié, en attente de sélection manuelle"
+          );
+        }
+
+        setLoadingMessage(
+          currentBatimentId
+            ? "Bâtiment chargé depuis l'URL"
+            : "Sélectionnez un bâtiment pour commencer l'audit"
         );
-
-        let response;
-        if (currentBatimentId) {
-          // Fetch pieces for specific building
-          response = await apiHelpers.pieces.getByBatiment(currentBatimentId);
-        } else {
-          // Fetch all pieces
-          response = await apiHelpers.pieces.getAll();
-        }
-
-        // Handle response from batiment pieces API or regular pieces API
-        let piecesData = [];
-        if (response.data.success && response.data.data) {
-          // Response from batiment pieces API
-          piecesData = response.data.data.pieces || [];
-          setSelectedBatiment(response.data.data.batiment);
-        } else if (response.data.pieces) {
-          // Response from regular pieces API (fallback)
-          piecesData = response.data.pieces;
-        } else {
-          // Direct array response
-          piecesData = Array.isArray(response.data) ? response.data : [];
-        }
-        setRooms(piecesData);
       } catch (err: any) {
-        console.error("Erreur de chargement:", err);
+        console.error("❌ Erreur de chargement:", err);
         // Set empty array on error to prevent map errors
         setRooms([]);
 
@@ -133,11 +167,12 @@ export default function AuditPage() {
         });
       } finally {
         setLoading(false);
+        console.log("🏁 Chargement terminé");
       }
     };
 
-    loadPieces();
-  }, [toast]);
+    loadData();
+  }, []); // Exécuter seulement au montage du composant
 
   // ✅ Ajouter une pièce localement
   const addRoom = () => {
@@ -241,7 +276,7 @@ export default function AuditPage() {
           console.log("Création pièce:", roomData);
           console.log("selectedBatiment:", selectedBatiment);
           console.log("room original:", room);
-          
+
           await apiHelpers.pieces.create(roomData);
           createdCount++;
         } catch (error: any) {
@@ -277,7 +312,7 @@ export default function AuditPage() {
           console.log("Mise à jour pièce:", roomData);
           console.log("selectedBatiment:", selectedBatiment);
           console.log("room original:", room);
-          
+
           await apiHelpers.pieces.update(room.id, roomData);
           updatedCount++;
         } catch (error: any) {
@@ -463,6 +498,7 @@ export default function AuditPage() {
 
       setSelectedBatiment(selectedBat);
       console.log("Bâtiment sélectionné:", selectedBat);
+      console.log("Nom du bâtiment:", selectedBat.nom_batiment);
 
       // Charger les pièces du bâtiment
       console.log(
@@ -481,7 +517,7 @@ export default function AuditPage() {
         if (response.data.data.batiment) {
           setSelectedBatiment(response.data.data.batiment);
         }
-        
+
         // Plus besoin de récupérer un audit
         console.log("✅ Pièces chargées pour le bâtiment");
       } else if (Array.isArray(response.data)) {
@@ -496,6 +532,9 @@ export default function AuditPage() {
 
       setRooms(piecesData);
       setBatimentId(batimentId);
+
+      console.log("🎯 Pièces définies dans l'état:", piecesData);
+      console.log("🎯 Nombre de pièces:", piecesData.length);
 
       // Mettre à jour l'URL sans recharger la page
       const url = new URL(window.location.href);
@@ -559,7 +598,7 @@ export default function AuditPage() {
     }
   };
 
-  if (loading) return <LoadingPage text="Chargement des pièces..." />;
+  if (loading) return <LoadingPage text={loadingMessage} />;
 
   return (
     <div className="space-y-6">
@@ -568,7 +607,7 @@ export default function AuditPage() {
           <CardTitle>Configuration du Bâtiment</CardTitle>
           <CardDescription>
             {selectedBatiment
-              ? `Audit des pièces du bâtiment: ${selectedBatiment.nom}`
+              ? `Audit des pièces du bâtiment: ${selectedBatiment.nom_batiment}`
               : "Informations de base pour cet audit."}
           </CardDescription>
         </CardHeader>
@@ -639,7 +678,7 @@ export default function AuditPage() {
                 <div>
                   <p className="text-sm text-green-800">
                     ✅ <strong>Bâtiment sélectionné:</strong>{" "}
-                    {selectedBatiment.nom} ({selectedBatiment.commune})
+                    {selectedBatiment.nom_batiment} ({selectedBatiment.commune})
                   </p>
                 </div>
                 <span className="text-xs text-green-600">

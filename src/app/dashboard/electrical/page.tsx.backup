@@ -1,0 +1,2468 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Plus,
+  Save,
+  Trash2,
+  Building,
+  Zap,
+  Plug,
+  ToggleLeft,
+  Edit,
+  Camera,
+  Upload,
+  X,
+  Eye,
+} from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useToast } from "@/hooks/use-toast";
+import { Modal } from "@/components/ui/modal";
+import { InstallationForm } from "@/components/electrical/InstallationForm";
+import { PriseElectriqueForm } from "@/components/electrical/PriseElectriqueForm";
+import { InterrupteurForm } from "@/components/electrical/InterrupteurForm";
+import { installationService, priseElectriqueService, interrupteurService } from "../../../../services/electricalApi";
+import {
+  Installation,
+  PriseElectrique,
+  Interrupteur,
+  InstallationForm as InstallationFormType,
+  PriseElectriqueForm as PriseElectriqueFormType,
+  InterrupteurForm as InterrupteurFormType,
+} from "@/types/electrical";
+import { title } from "process";
+import { title } from "process";
+
+export default function ElectricalPage() {
+  // États principaux
+  const [installations, setInstallations] = useState<Installation[]>([]);
+  const [selectedInstallation, setSelectedInstallation] =
+    useState<Installation | null>(null);
+  const [prises, setPrises] = useState<PriseElectrique[]>([]);
+  const [interrupteurs, setInterrupteurs] = useState<Interrupteur[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  // États pour les formulaires
+  const [showInstallationForm, setShowInstallationForm] = useState(false);
+  const [showPriseForm, setShowPriseForm] = useState(false);
+  const [showInterrupteurForm, setShowInterrupteurForm] = useState(false);
+  const [editingInstallation, setEditingInstallation] =
+    useState<Installation | null>(null);
+  const [editingPrise, setEditingPrise] = useState<PriseElectrique | null>(
+    null
+  );
+  const [editingInterrupteur, setEditingInterrupteur] =
+    useState<Interrupteur | null>(null);
+
+  // Formulaires data avec TOUS les champs
+  const [installationForm, setInstallationForm] =
+    useState<InstallationFormType>({
+      client_id: 1, // À adapter selon votre logique
+      type_compteur: "BT",
+      configuration_compteur: "2 fils",
+      amperage: 20,
+      composantes_coffret: "",
+      cable_type: "",
+      commentaire_cable: "",
+      protection_terre: false,
+      barette_de_coupure: false,
+      valeur_terre: 0,
+      terre_dans_pc: false,
+      presence_differentiel: false,
+      commentaire_terre: "",
+      date_installation: new Date().toISOString().split("T")[0],
+      photo_coffret: [],
+      photo_cable_electrique: [],
+      photo_type_cable: [],
+      photo_barette_coupure: [],
+      photo_terre_pc: [],
+    });
+
+  const [priseForm, setPriseForm] = useState<PriseElectriqueFormType>({
+    installation_id: 0,
+    reference: "",
+    etat: "bon",
+    commentaire: "",
+    localisation: "",
+    avec_terre: false,
+    ordre: 1,
+    photos: [],
+  });
+
+  const [interrupteurForm, setInterrupteurForm] = useState<InterrupteurFormType>({
+    installation_id: 0,
+    reference: "",
+    etat: "bon",
+    commentaire: "",
+    localisation: "",
+    type_interrupteur: "simple",
+    ordre: 1,
+    photos: [],
+  });
+
+  // États pour la gestion des photos
+  const [photoPreview, setPhotoPreview] = useState<{ [key: string]: string[] }>(
+    {}
+  );
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<string>("");
+
+  // Charger les données au démarrage
+  useEffect(() => {
+    loadInstallations();
+  }, []);
+
+  // Simuler les services API (à remplacer par de vrais appels API)
+  const loadInstallations = async () => {
+    try {
+      setLoading(true);
+
+      // Appel API réel pour charger les installations
+      const response = await installationService.getAll();
+      console.log("Installations chargées:", response);
+
+      const installations = response.data || [];
+      setInstallations(installations);
+
+      if (installations.length > 0) {
+        handleInstallationSelect(installations[0]);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement:", error);
+
+      // En cas d'erreur, utiliser des données de test
+      console.log("Utilisation des données de test...");
+      const mockInstallations: Installation[] = [
+        {
+          id: 1,
+          client_id: 1,
+          type_compteur: "BT",
+          configuration_compteur: "4 fils",
+          amperage: 32,
+          composantes_coffret: "Disjoncteur principal 32A, Différentiel 30mA",
+          photo_coffret: ["/images/coffret1.jpg", "/images/coffret2.jpg"],
+          cable_type: "Cuivre 2.5mm²",
+          photo_cable_electrique: ["/images/cable1.jpg"],
+          photo_type_cable: ["/images/type_cable1.jpg"],
+          commentaire_cable: "Câblage conforme aux normes",
+          protection_terre: true,
+          barette_de_coupure: true,
+          photo_barette_coupure: ["/images/barette1.jpg"],
+          valeur_terre: 15,
+          terre_dans_pc: true,
+          photo_terre_pc: ["/images/terre_pc1.jpg"],
+          presence_differentiel: true,
+          commentaire_terre: "Installation conforme, terre mesurée à 15Ω",
+          date_installation: "2024-01-15",
+        },
+      ];
+
+      setInstallations(mockInstallations);
+      if (mockInstallations.length > 0) {
+        handleInstallationSelect(mockInstallations[0]);
+      }
+
+      toast({
+        title: "Avertissement",
+        description:
+          "Impossible de charger les installations depuis l'API. Données de test utilisées.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadEquipments = async (installationId: number) => {
+    try {
+      // Appels API réels pour charger les équipements
+      const [prisesResponse, interrupteursResponse] = await Promise.all([
+        priseElectriqueService.getByInstallation(installationId),
+        interrupteurService.getByInstallation(installationId)
+      ]);
+
+      console.log("Prises chargées:", prisesResponse);
+      console.log("Interrupteurs chargés:", interrupteursResponse);
+
+      const prises = prisesResponse.data || [];
+      const interrupteurs = interrupteursResponse.data || [];
+
+      setPrises(prises);
+      setInterrupteurs(interrupteurs);
+    } catch (error) {
+      console.error("Erreur lors du chargement des équipements:", error);
+      
+      // En cas d'erreur, utiliser des données vides
+      setPrises([]);
+      setInterrupteurs([]);
+    }
+  };
+
+  const handleInstallationSelect = async (installation: Installation) => {
+    setSelectedInstallation(installation);
+    if (installation.id) {
+      await loadEquipments(installation.id);
+    }
+  };
+
+  // Gestion des fichiers photos
+  const handleFileChange = (
+    files: FileList | null,
+    fieldName: string,
+    formType: "installation" | "prise" | "interrupteur"
+  ) => {
+    if (!files) return;
+
+    const fileArray = Array.from(files);
+    const previewUrls: string[] = [];
+
+    fileArray.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target && e.target.result) {
+          previewUrls.push(e.target.result as string);
+          setPhotoPreview((prev) => ({
+            ...prev,
+            [`${formType}_${fieldName}`]: [
+              ...(prev[`${formType}_${fieldName}`] || []),
+              e.target!.result as string,
+            ],
+          }));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Mettre à jour le formulaire approprié
+    if (formType === "installation") {
+      setInstallationForm((prev) => ({
+        ...prev,
+        [fieldName]: [
+          ...(prev[fieldName as keyof InstallationFormType] as File[]),
+          ...fileArray,
+        ],
+      }));
+    } else if (formType === "prise") {
+      setPriseForm((prev) => ({
+        ...prev,
+        photos: [...prev.photos, ...fileArray],
+      }));
+    } else if (formType === "interrupteur") {
+      setInterrupteurForm((prev) => ({
+        ...prev,
+        photos: [...prev.photos, ...fileArray],
+      }));
+    }
+  };
+
+  const removePhoto = (
+    index: number,
+    fieldName: string,
+    formType: "installation" | "prise" | "interrupteur"
+  ) => {
+    const key = `${formType}_${fieldName}`;
+    setPhotoPreview((prev) => ({
+      ...prev,
+      [key]: prev[key]?.filter((_, i) => i !== index) || [],
+    }));
+
+    if (formType === "installation") {
+      setInstallationForm((prev) => ({
+        ...prev,
+        [fieldName]: (
+          prev[fieldName as keyof InstallationFormType] as File[]
+        ).filter((_, i) => i !== index),
+      }));
+    } else if (formType === "prise") {
+      setPriseForm((prev) => ({
+        ...prev,
+        photos: prev.photos.filter((_, i) => i !== index),
+      }));
+    } else if (formType === "interrupteur") {
+      setInterrupteurForm((prev) => ({
+        ...prev,
+        photos: prev.photos.filter((_, i) => i !== index),
+      }));
+    }
+  };
+
+  const openPhotoModal = (photoUrl: string) => {
+    setSelectedPhoto(photoUrl);
+    setShowPhotoModal(true);
+  };
+
+  // Fonction pour construire l'URL complète des photos
+  const getPhotoUrl = (photoPath: string) => {
+    if (!photoPath) return '';
+    // Si c'est déjà une URL complète, la retourner telle quelle
+    if (photoPath.startsWith('http')) return photoPath;
+    // Sinon, préfixer avec l'URL du serveur Laravel
+    return `http://127.0.0.1:8000/storage/${photoPath}`;
+  };
+
+  // Conversion d'une Installation vers InstallationFormType
+  const convertInstallationToForm = (
+    installation: Installation
+  ): Partial<InstallationFormType> => {
+    return {
+      client_id: installation.client_id,
+      type_compteur: installation.type_compteur,
+      configuration_compteur: installation.configuration_compteur,
+      amperage: installation.amperage,
+      composantes_coffret: installation.composantes_coffret,
+      cable_type: installation.cable_type,
+      commentaire_cable: installation.commentaire_cable,
+      protection_terre: installation.protection_terre,
+      barette_de_coupure: installation.barette_de_coupure,
+      valeur_terre: installation.valeur_terre,
+      terre_dans_pc: installation.terre_dans_pc,
+      presence_differentiel: installation.presence_differentiel,
+      commentaire_terre: installation.commentaire_terre,
+      date_installation: installation.date_installation,
+      // Les photos existantes ne sont pas converties car elles sont déjà stockées
+      photo_coffret: [],
+      photo_cable_electrique: [],
+      photo_type_cable: [],
+      photo_barette_coupure: [],
+      photo_terre_pc: [],
+    };
+  };
+
+  // Gestion du formulaire d'installation
+  const handleInstallationSubmit = async (formData: InstallationFormType) => {
+    try {
+      setLoading(true);
+
+      console.log("Données du formulaire:", formData);
+
+      // Appel API réel pour créer l'installation
+      const response = await installationService.create(formData);
+
+      console.log("Réponse API:", response);
+
+      toast({
+        title: "Succès",
+        description: editingInstallation
+          ? "Installation modifiée avec succès"
+          : "Installation créée avec succès",
+      });
+
+      // Fermer la modale et réinitialiser
+      setShowInstallationForm(false);
+      setEditingInstallation(null);
+
+      // Recharger les installations
+      await loadInstallations();
+    } catch (error: any) {
+      console.error("Erreur lors de la sauvegarde:", error);
+
+      // Afficher l'erreur spécifique de l'API
+      let errorMessage = "Impossible de sauvegarder l'installation";
+
+      if (error.response) {
+        // Erreur de réponse du serveur
+        console.error("Status:", error.response.status);
+        console.error("Data:", error.response.data);
+
+        if (error.response.status === 404) {
+          errorMessage =
+            "Endpoint API non trouvé (404). Vérifiez que le serveur Laravel fonctionne.";
+        } else if (error.response.status === 422) {
+          errorMessage =
+            "Données invalides: " +
+            (error.response.data?.message || "Erreur de validation");
+        } else if (error.response.status >= 500) {
+          errorMessage =
+            "Erreur serveur: " +
+            (error.response.data?.message || "Erreur interne");
+        } else {
+          errorMessage = error.response.data?.message || errorMessage;
+        }
+      } else if (error.request) {
+        // Erreur de réseau
+        errorMessage =
+          "Impossible de contacter le serveur. Vérifiez votre connexion.";
+      }
+
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInstallationCancel = () => {
+    setShowInstallationForm(false);
+    setEditingInstallation(null);
+  };
+
+  // Gestion du formulaire de prise électrique
+  const handlePriseSubmit = async (formData: PriseElectriqueFormType) => {
+    try {
+      setLoading(true);
+
+      console.log("Données de la prise:", formData);
+
+      // Appel API réel pour créer la prise
+      const response = await priseElectriqueService.create(formData);
+      
+      console.log("Réponse API prise:", response);
+
+      toast({
+        title: "Succès",
+        description: editingPrise
+          ? "Prise modifiée avec succès"
+          : "Prise créée avec succès",
+      });
+
+      // Fermer le formulaire et réinitialiser
+      setShowPriseForm(false);
+      setEditingPrise(null);
+      setPhotoPreview((prev) => ({ ...prev, prise_photos: [] }));
+
+      // Recharger les prises de l'installation
+      if (selectedInstallation?.id) {
+        await loadEquipments(selectedInstallation.id);
+      }
+    } catch (error: any) {
+      console.error("Erreur lors de la sauvegarde de la prise:", error);
+      
+      let errorMessage = "Impossible de sauvegarder la prise";
+      
+      if (error.response) {
+        console.error("Status:", error.response.status);
+        console.error("Data:", error.response.data);
+        
+        if (error.response.status === 422) {
+          errorMessage = "Données invalides: " + (error.response.data?.message || "Erreur de validation");
+        } else if (error.response.status >= 500) {
+          errorMessage = "Erreur serveur: " + (error.response.data?.message || "Erreur interne");
+        } else {
+          errorMessage = error.response.data?.message || errorMessage;
+        }
+      }
+      
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Gestion du formulaire d'interrupteur
+  const handleInterrupteurSubmit = async (formData: InterrupteurFormType) => {
+    try {
+      setLoading(true);
+
+      console.log("Données de l'interrupteur:", formData);
+
+      // Appel API réel pour créer l'interrupteur
+      const response = await interrupteurService.create(formData);
+      
+      console.log("Réponse API interrupteur:", response);
+
+      toast({
+        title: "Succès",
+        description: editingInterrupteur
+          ? "Interrupteur modifié avec succès"
+          : "Interrupteur créé avec succès",
+      });
+
+      // Fermer le formulaire et réinitialiser
+      setShowInterrupteurForm(false);
+      setEditingInterrupteur(null);
+      setPhotoPreview((prev) => ({
+        ...prev,
+        interrupteur_photos: [],
+      }));
+
+      // Recharger les interrupteurs de l'installation
+      if (selectedInstallation?.id) {
+        await loadEquipments(selectedInstallation.id);
+      }
+    } catch (error: any) {
+      console.error("Erreur lors de la sauvegarde de l'interrupteur:", error);
+      
+      let errorMessage = "Impossible de sauvegarder l'interrupteur";
+      
+      if (error.response) {
+        console.error("Status:", error.response.status);
+        console.error("Data:", error.response.data);
+        
+        if (error.response.status === 422) {
+          errorMessage = "Données invalides: " + (error.response.data?.message || "Erreur de validation");
+        } else if (error.response.status >= 500) {
+          errorMessage = "Erreur serveur: " + (error.response.data?.message || "Erreur interne");
+        } else {
+          errorMessage = error.response.data?.message || errorMessage;
+        }
+      }
+      
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <LoadingSpinner
+          size="lg"
+          text="Chargement des installations électriques..."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* En-tête avec sélecteur d'installation */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Building className="h-6 w-6 text-blue-600" />
+              <div>
+                <CardTitle>Installations Électriques Complètes</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Gestion complète : Installation → Prises → Interrupteurs avec
+                  toutes les photos
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => setShowInstallationForm(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle Installation
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {installations.length === 0 ? (
+            <div className="text-center py-8">
+              <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Aucune installation trouvée</p>
+              <p className="text-sm text-gray-400">
+                Créez votre première installation pour commencer
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <Label>Sélectionner une installation :</Label>
+              <div className="grid gap-3">
+                {installations.map((installation) => (
+                  <Card
+                    key={installation.id}
+                    className={`cursor-pointer transition-all ${
+                      selectedInstallation?.id === installation.id
+                        ? "ring-2 ring-blue-500 bg-blue-50"
+                        : "hover:bg-gray-50"
+                    }`}
+                    onClick={() => handleInstallationSelect(installation)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Zap className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">
+                              {installation.type_compteur} -{" "}
+                              {installation.configuration_compteur} -{" "}
+                              {installation.amperage}A
+                            </h3>
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <span>
+                                {new Date(
+                                  installation.date_installation
+                                ).toLocaleDateString("fr-FR")}
+                              </span>
+                              {installation.protection_terre && (
+                                <span className="text-green-600">
+                                  Terre: {installation.valeur_terre}Ω
+                                </span>
+                              )}
+                              {installation.presence_differentiel && (
+                                <span className="text-blue-600">
+                                  Différentiel
+                                </span>
+                              )}
+                              {installation.barette_de_coupure && (
+                                <span className="text-orange-600">Barette</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Câble: {installation.cable_type} | Coffret:{" "}
+                              {installation.composantes_coffret}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-right text-sm text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <Camera className="h-3 w-3" />
+                              <span>
+                                {(installation.photo_coffret?.length || 0) +
+                                  (installation.photo_cable_electrique
+                                    ?.length || 0) +
+                                  (installation.photo_type_cable?.length || 0) +
+                                  (installation.photo_barette_coupure?.length ||
+                                    0) +
+                                  (installation.photo_terre_pc?.length ||
+                                    0)}{" "}
+                                photos
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingInstallation(installation);
+                              setShowInstallationForm(true);
+                            }}
+                            className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Logique de suppression
+                            }}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      {/* Section des équipements de l'installation sélectionnée */}
+      {selectedInstallation && (
+        <div className="space-y-6">
+          {/* Informations détaillées de l'installation avec TOUTES les photos */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Installation Complète : {
+                  selectedInstallation.type_compteur
+                } - {selectedInstallation.configuration_compteur}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Informations techniques */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">
+                        Caractéristiques Électriques
+                      </Label>
+                      <div className="space-y-1 text-sm">
+                        <div>
+                          Type compteur:{" "}
+                          <span className="font-medium">
+                            {selectedInstallation.type_compteur}
+                          </span>
+                        </div>
+                        <div>
+                          Configuration:{" "}
+                          <span className="font-medium">
+                            {selectedInstallation.configuration_compteur}
+                          </span>
+                        </div>
+                        <div>
+                          Ampérage:{" "}
+                          <span className="font-medium">
+                            {selectedInstallation.amperage}A
+                          </span>
+                        </div>
+                        <div>
+                          Date:{" "}
+                          <span className="font-medium">
+                            {new Date(
+                              selectedInstallation.date_installation
+                            ).toLocaleDateString("fr-FR")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">
+                        Protections & Sécurité
+                      </Label>
+                      <div className="space-y-1 text-sm">
+                        <div
+                          className={
+                            selectedInstallation.protection_terre
+                              ? "text-green-600"
+                              : "text-gray-400"
+                          }
+                        >
+                          Protection terre:{" "}
+                          {selectedInstallation.protection_terre
+                            ? "Oui"
+                            : "Non"}
+                        </div>
+                        <div
+                          className={
+                            selectedInstallation.presence_differentiel
+                              ? "text-blue-600"
+                              : "text-gray-400"
+                          }
+                        >
+                          Différentiel:{" "}
+                          {selectedInstallation.presence_differentiel
+                            ? "Oui"
+                            : "Non"}
+                        </div>
+                        <div
+                          className={
+                            selectedInstallation.barette_de_coupure
+                              ? "text-orange-600"
+                              : "text-gray-400"
+                          }
+                        >
+                          Barette coupure:{" "}
+                          {selectedInstallation.barette_de_coupure
+                            ? "Oui"
+                            : "Non"}
+                        </div>
+                        <div
+                          className={
+                            selectedInstallation.terre_dans_pc
+                              ? "text-purple-600"
+                              : "text-gray-400"
+                          }
+                        >
+                          Terre dans PC:{" "}
+                          {selectedInstallation.terre_dans_pc ? "Oui" : "Non"}
+                        </div>
+                        {selectedInstallation.valeur_terre && (
+                          <div>
+                            Valeur terre:{" "}
+                            <span className="font-medium">
+                              {selectedInstallation.valeur_terre}Ω
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Équipements & Câblage
+                    </Label>
+                    <div className="space-y-1 text-sm">
+                      <div>
+                        Coffret:{" "}
+                        <span className="font-medium">
+                          {selectedInstallation.composantes_coffret}
+                        </span>
+                      </div>
+                      <div>
+                        Type câble:{" "}
+                        <span className="font-medium">
+                          {selectedInstallation.cable_type}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Plug className="h-4 w-4 text-blue-500" />
+                        <span>{prises.length} prises électriques</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <ToggleLeft className="h-4 w-4 text-orange-500" />
+                        <span>{interrupteurs.length} interrupteurs</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Commentaires */}
+                  {(selectedInstallation.commentaire_cable ||
+                    selectedInstallation.commentaire_terre) && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">
+                        Commentaires
+                      </Label>
+                      {selectedInstallation.commentaire_cable && (
+                        <div className="p-3 bg-blue-50 rounded-lg">
+                          <p className="text-sm font-medium text-blue-700">
+                            Câblage:
+                          </p>
+                          <p className="text-sm text-blue-600">
+                            {selectedInstallation.commentaire_cable}
+                          </p>
+                        </div>
+                      )}
+                      {selectedInstallation.commentaire_terre && (
+                        <div className="p-3 bg-green-50 rounded-lg">
+                          <p className="text-sm font-medium text-green-700">
+                            Terre:
+                          </p>
+                          <p className="text-sm text-green-600">
+                            {selectedInstallation.commentaire_terre}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Galerie photos complète */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Galerie Photos Complète
+                  </Label>
+
+                  {/* Photos du coffret */}
+                  {selectedInstallation.photo_coffret &&
+                    selectedInstallation.photo_coffret.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-blue-600">
+                          Photos Coffret (
+                          {selectedInstallation.photo_coffret.length})
+                        </Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {selectedInstallation.photo_coffret.map(
+                            (photo, index) => (
+                              <div
+                                key={index}
+                                className="relative group cursor-pointer"
+                                onClick={() => openPhotoModal(photo)}
+                              >
+                                <img
+                                  src={getPhotoUrl(photo)}
+                                  alt={`Coffret ${index + 1}`}
+                                  className="w-full h-20 object-cover rounded border hover:border-blue-500"
+                                  onError={(e) => {
+                                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiAxNkwyMCAyNEwyOCAxNlYzMkgxMlYxNloiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded flex items-center justify-center">
+                                  <Eye className="h-4 w-4 text-white opacity-0 group-hover:opacity-100" />
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Photos câble électrique */}
+                  {selectedInstallation.photo_cable_electrique &&
+                    selectedInstallation.photo_cable_electrique.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-green-600">
+                          Photos Câble Électrique (
+                          {selectedInstallation.photo_cable_electrique.length})
+                        </Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {selectedInstallation.photo_cable_electrique.map(
+                            (photo, index) => (
+                              <div
+                                key={index}
+                                className="relative group cursor-pointer"
+                                onClick={() => openPhotoModal(photo)}
+                              >
+                                <img
+                                  src={getPhotoUrl(photo)}
+                                  alt={`Câble ${index + 1}`}
+                                  className="w-full h-20 object-cover rounded border hover:border-green-500"
+                                  onError={(e) => {
+                                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiAxNkwyMCAyNEwyOCAxNlYzMkgxMlYxNloiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded flex items-center justify-center">
+                                  <Eye className="h-4 w-4 text-white opacity-0 group-hover:opacity-100" />
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Photos type de câble */}
+                  {selectedInstallation.photo_type_cable &&
+                    selectedInstallation.photo_type_cable.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-purple-600">
+                          Photos Type Câble (
+                          {selectedInstallation.photo_type_cable.length})
+                        </Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {selectedInstallation.photo_type_cable.map(
+                            (photo, index) => (
+                              <div
+                                key={index}
+                                className="relative group cursor-pointer"
+                                onClick={() => openPhotoModal(photo)}
+                              >
+                                <img
+                                  src={getPhotoUrl(photo)}
+                                  alt={`Type câble ${index + 1}`}
+                                  className="w-full h-20 object-cover rounded border hover:border-purple-500"
+                                  onError={(e) => {
+                                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiAxNkwyMCAyNEwyOCAxNlYzMkgxMlYxNloiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded flex items-center justify-center">
+                                  <Eye className="h-4 w-4 text-white opacity-0 group-hover:opacity-100" />
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Photos barette de coupure */}
+                  {selectedInstallation.photo_barette_coupure &&
+                    selectedInstallation.photo_barette_coupure.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-orange-600">
+                          Photos Barette Coupure (
+                          {selectedInstallation.photo_barette_coupure.length})
+                        </Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {selectedInstallation.photo_barette_coupure.map(
+                            (photo, index) => (
+                              <div
+                                key={index}
+                                className="relative group cursor-pointer"
+                                onClick={() => openPhotoModal(photo)}
+                              >
+                                <img
+                                  src={getPhotoUrl(photo)}
+                                  alt={`Barette ${index + 1}`}
+                                  className="w-full h-20 object-cover rounded border hover:border-orange-500"
+                                  onError={(e) => {
+                                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiAxNkwyMCAyNEwyOCAxNlYzMkgxMlYxNloiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded flex items-center justify-center">
+                                  <Eye className="h-4 w-4 text-white opacity-0 group-hover:opacity-100" />
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Photos terre PC */}
+                  {selectedInstallation.photo_terre_pc &&
+                    selectedInstallation.photo_terre_pc.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-red-600">
+                          Photos Terre PC (
+                          {selectedInstallation.photo_terre_pc.length})
+                        </Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {selectedInstallation.photo_terre_pc.map(
+                            (photo, index) => (
+                              <div
+                                key={index}
+                                className="relative group cursor-pointer"
+                                onClick={() => openPhotoModal(photo)}
+                              >
+                                <img
+                                  src={getPhotoUrl(photo)}
+                                  alt={`Terre PC ${index + 1}`}
+                                  className="w-full h-20 object-cover rounded border hover:border-red-500"
+                                  onError={(e) => {
+                                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiAxNkwyMCAyNEwyOCAxNlYzMkgxMlYxNloiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded flex items-center justify-center">
+                                  <Eye className="h-4 w-4 text-white opacity-0 group-hover:opacity-100" />
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Message si aucune photo */}
+                  {!selectedInstallation.photo_coffret?.length &&
+                    !selectedInstallation.photo_cable_electrique?.length &&
+                    !selectedInstallation.photo_type_cable?.length &&
+                    !selectedInstallation.photo_barette_coupure?.length &&
+                    !selectedInstallation.photo_terre_pc?.length && (
+                      <div className="text-center py-4 text-gray-500">
+                        <Camera className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm">Aucune photo disponible</p>
+                      </div>
+                    )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Section Prises Électriques COMPLÈTE */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Plug className="h-5 w-5 text-blue-600" />
+                  <CardTitle>
+                    Prises Électriques Complètes ({prises.length})
+                  </CardTitle>
+                </div>
+                <Button
+                  onClick={() => {
+                    setPriseForm((prev) => ({
+                      ...prev,
+                      installation_id: selectedInstallation.id || 0,
+                    }));
+                    setShowPriseForm(true);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter une prise
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {prises.length === 0 ? (
+                <div className="text-center py-8">
+                  <Plug className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">Aucune prise électrique</p>
+                  <p className="text-sm text-gray-400">
+                    Ajoutez des prises à cette installation
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {prises.map((prise) => (
+                    <Card
+                      key={prise.id}
+                      className="border-l-4 border-l-blue-500"
+                    >
+                      <CardContent className="p-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                          {/* Informations de la prise */}
+                          <div className="lg:col-span-2 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <span className="text-blue-600 text-sm font-bold">
+                                    {prise.ordre}
+                                  </span>
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-lg">
+                                    {prise.reference}
+                                  </h4>
+                                  <p className="text-sm text-gray-500">
+                                    ID: {prise.id}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingPrise(prise);
+                                    setPriseForm({
+                                      installation_id: prise.installation_id,
+                                      reference: prise.reference,
+                                      etat: prise.etat,
+                                      commentaire: prise.commentaire || "",
+                                      localisation: prise.localisation || "",
+                                      avec_terre: prise.avec_terre || false,
+                                      ordre: prise.ordre || 1,
+                                      photos: [],
+                                    });
+                                    setShowPriseForm(true);
+                                  }}
+                                  className="text-blue-500 hover:text-blue-700"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    // Logique de suppression
+                                  }}
+                                  className="text-red-500 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">
+                                  État & Caractéristiques
+                                </Label>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        prise.etat === "bon"
+                                          ? "bg-emerald-100 text-emerald-700"
+                                          : prise.etat === "defectueux"
+                                          ? "bg-red-100 text-red-700"
+                                          : prise.etat === "a_remplacer"
+                                          ? "bg-amber-100 text-amber-700"
+                                          : prise.etat === "non_installe"
+                                          ? "bg-gray-100 text-gray-700"
+                                          : "bg-purple-100 text-purple-700"
+                                      }`}
+                                    >
+                                      {prise.etat === "bon"
+                                        ? "Bon état"
+                                        : prise.etat === "defectueux"
+                                        ? "Défectueux"
+                                        : prise.etat === "a_remplacer"
+                                        ? "À remplacer"
+                                        : prise.etat === "non_installe"
+                                        ? "Non installé"
+                                        : "Manquant"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`text-xs font-medium px-2 py-1 rounded ${
+                                        prise.avec_terre
+                                          ? "bg-green-100 text-green-700"
+                                          : "bg-gray-100 text-gray-600"
+                                      }`}
+                                    >
+                                      {prise.avec_terre
+                                        ? "🔌 Avec terre"
+                                        : "⚡ Sans terre"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">
+                                  Localisation
+                                </Label>
+                                <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                                  {prise.localisation || "Non spécifiée"}
+                                </p>
+                              </div>
+                            </div>
+
+                            {prise.commentaire && (
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">
+                                  Commentaires
+                                </Label>
+                                <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border-l-2 border-blue-200">
+                                  {prise.commentaire}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Photos de la prise */}
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium flex items-center gap-2">
+                              <Camera className="h-4 w-4" />
+                              Photos ({prise.photo_prise?.length || 0})
+                            </Label>
+                            {prise.photo_prise &&
+                            prise.photo_prise.length > 0 ? (
+                              <div className="grid grid-cols-2 gap-2">
+                                {prise.photo_prise.map((photo, index) => (
+                                  <div
+                                    key={index}
+                                    className="relative group cursor-pointer"
+                                    onClick={() => openPhotoModal(photo)}
+                                  >
+                                    <img
+                                      src={getPhotoUrl(photo)}
+                                      alt={`${prise.reference} - Photo ${
+                                        index + 1
+                                      }`}
+                                      onError={(e) => {
+                                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiAxNkwyMCAyNEwyOCAxNlYzMkgxMlYxNloiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
+                                      }}
+                                      className="w-full h-24 object-cover rounded border hover:border-blue-500 transition-colors"
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded flex items-center justify-center transition-all">
+                                      <Eye className="h-5 w-5 text-white opacity-0 group-hover:opacity-100" />
+                                    </div>
+                                    <div className="absolute top-1 right-1 bg-blue-500 text-white text-xs px-1 rounded">
+                                      {index + 1}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 text-gray-400 border-2 border-dashed border-gray-200 rounded">
+                                <Camera className="h-6 w-6 mx-auto mb-1" />
+                                <p className="text-xs">Aucune photo</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          {/* Section Interrupteurs COMPLÈTE */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ToggleLeft className="h-5 w-5 text-orange-600" />
+                  <CardTitle>
+                    Interrupteurs Complets ({interrupteurs.length})
+                  </CardTitle>
+                </div>
+                <Button
+                  onClick={() => {
+                    setInterrupteurForm((prev) => ({
+                      ...prev,
+                      installation_id: selectedInstallation.id || 0,
+                    }));
+                    setShowInterrupteurForm(true);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter un interrupteur
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {interrupteurs.length === 0 ? (
+                <div className="text-center py-8">
+                  <ToggleLeft className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">Aucun interrupteur</p>
+                  <p className="text-sm text-gray-400">
+                    Ajoutez des interrupteurs à cette installation
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {interrupteurs.map((interrupteur) => (
+                    <Card
+                      key={interrupteur.id}
+                      className="border-l-4 border-l-orange-500"
+                    >
+                      <CardContent className="p-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                          {/* Informations de l'interrupteur */}
+                          <div className="lg:col-span-2 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                                  <span className="text-orange-600 text-sm font-bold">
+                                    {interrupteur.ordre}
+                                  </span>
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-lg">
+                                    {interrupteur.reference}
+                                  </h4>
+                                  <p className="text-sm text-gray-500">
+                                    ID: {interrupteur.id}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingInterrupteur(interrupteur);
+                                    setInterrupteurForm({
+                                      installation_id:
+                                        interrupteur.installation_id,
+                                      reference: interrupteur.reference,
+                                      etat: interrupteur.etat,
+                                      commentaire:
+                                        interrupteur.commentaire || "",
+                                      localisation:
+                                        interrupteur.localisation || "",
+                                      type_interrupteur:
+                                        interrupteur.type_interrupteur ||
+                                        "simple",
+                                      ordre: interrupteur.ordre || 1,
+                                      photos: [],
+                                    });
+                                    setShowInterrupteurForm(true);
+                                  }}
+                                  className="text-orange-500 hover:text-orange-700"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    // Logique de suppression
+                                  }}
+                                  className="text-red-500 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">
+                                  État & Type
+                                </Label>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        interrupteur.etat === "bon"
+                                          ? "bg-emerald-100 text-emerald-700"
+                                          : interrupteur.etat === "defectueux"
+                                          ? "bg-red-100 text-red-700"
+                                          : interrupteur.etat === "a_remplacer"
+                                          ? "bg-amber-100 text-amber-700"
+                                          : interrupteur.etat === "non_installe"
+                                          ? "bg-gray-100 text-gray-700"
+                                          : "bg-purple-100 text-purple-700"
+                                      }`}
+                                    >
+                                      {interrupteur.etat === "bon"
+                                        ? "Bon état"
+                                        : interrupteur.etat === "defectueux"
+                                        ? "Défectueux"
+                                        : interrupteur.etat === "a_remplacer"
+                                        ? "À remplacer"
+                                        : interrupteur.etat === "non_installe"
+                                        ? "Non installé"
+                                        : "Manquant"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`text-xs font-medium px-2 py-1 rounded ${
+                                        interrupteur.type_interrupteur ===
+                                        "simple"
+                                          ? "bg-blue-100 text-blue-700"
+                                          : interrupteur.type_interrupteur ===
+                                            "double"
+                                          ? "bg-purple-100 text-purple-700"
+                                          : interrupteur.type_interrupteur ===
+                                            "va_et_vient"
+                                          ? "bg-orange-100 text-orange-700"
+                                          : interrupteur.type_interrupteur ===
+                                            "poussoir"
+                                          ? "bg-green-100 text-green-700"
+                                          : interrupteur.type_interrupteur ===
+                                            "variateur"
+                                          ? "bg-yellow-100 text-yellow-700"
+                                          : interrupteur.type_interrupteur ===
+                                            "detecteur"
+                                          ? "bg-red-100 text-red-700"
+                                          : "bg-gray-100 text-gray-700"
+                                      }`}
+                                    >
+                                      {interrupteur.type_interrupteur ===
+                                      "simple"
+                                        ? "🔘 Simple"
+                                        : interrupteur.type_interrupteur ===
+                                          "double"
+                                        ? "🔘🔘 Double"
+                                        : interrupteur.type_interrupteur ===
+                                          "va_et_vient"
+                                        ? "🔄 Va-et-vient"
+                                        : interrupteur.type_interrupteur ===
+                                          "poussoir"
+                                        ? "⏺️ Poussoir"
+                                        : interrupteur.type_interrupteur ===
+                                          "variateur"
+                                        ? "🎚️ Variateur"
+                                        : interrupteur.type_interrupteur ===
+                                          "detecteur"
+                                        ? "👁️ Détecteur"
+                                        : `🔘 ${interrupteur.type_interrupteur}`}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">
+                                  Localisation
+                                </Label>
+                                <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                                  {interrupteur.localisation || "Non spécifiée"}
+                                </p>
+                              </div>
+                            </div>
+
+                            {interrupteur.commentaire && (
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">
+                                  Commentaires
+                                </Label>
+                                <p className="text-sm text-gray-600 bg-orange-50 p-3 rounded-lg border-l-2 border-orange-200">
+                                  {interrupteur.commentaire}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Photos de l'interrupteur */}
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium flex items-center gap-2">
+                              <Camera className="h-4 w-4" />
+                              Photos (
+                              {interrupteur.photo_interrupteur?.length || 0})
+                            </Label>
+                            {interrupteur.photo_interrupteur &&
+                            interrupteur.photo_interrupteur.length > 0 ? (
+                              <div className="grid grid-cols-2 gap-2">
+                                {interrupteur.photo_interrupteur.map(
+                                  (photo, index) => (
+                                    <div
+                                      key={index}
+                                      className="relative group cursor-pointer"
+                                      onClick={() => openPhotoModal(photo)}
+                                    >
+                                      <img
+                                        src={getPhotoUrl(photo)}
+                                        alt={`${
+                                          interrupteur.reference
+                                        } - Photo ${index + 1}`}
+                                        className="w-full h-24 object-cover rounded border hover:border-orange-500 transition-colors"
+                                        onError={(e) => {
+                                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiAxNkwyMCAyNEwyOCAxNlYzMkgxMlYxNloiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
+                                        }}
+                                      />
+                                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded flex items-center justify-center transition-all">
+                                        <Eye className="h-5 w-5 text-white opacity-0 group-hover:opacity-100" />
+                                      </div>
+                                      <div className="absolute top-1 right-1 bg-orange-500 text-white text-xs px-1 rounded">
+                                        {index + 1}
+                                      </div>
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 text-gray-400 border-2 border-dashed border-gray-200 rounded">
+                                <Camera className="h-6 w-6 mx-auto mb-1" />
+                                <p className="text-xs">Aucune photo</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      {/* FORMULAIRE INSTALLATION COMPLET avec TOUTES les photos */}
+      {showInstallationForm && (
+        <Card className="border-2 border-blue-200">
+          <CardHeader className="bg-blue-50">
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              {editingInstallation
+                ? "Modifier Installation"
+                : "Nouvelle Installation Électrique Complète"}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Tous les champs et photos selon les spécifications du contrôleur
+              PHP
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6 p-6">
+            {/* Informations de base */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="type_compteur">Type de compteur *</Label>
+                <Select
+                  value={installationForm.type_compteur}
+                  onValueChange={(value: "BT" | "MT") =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      type_compteur: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner le type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BT">BT (Basse Tension)</SelectItem>
+                    <SelectItem value="MT">MT (Moyenne Tension)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="configuration_compteur">
+                  Configuration compteur *
+                </Label>
+                <Select
+                  value={installationForm.configuration_compteur}
+                  onValueChange={(value: "2 fils" | "4 fils") =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      configuration_compteur: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner la configuration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2 fils">2 fils</SelectItem>
+                    <SelectItem value="4 fils">4 fils</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="amperage">Ampérage (A) *</Label>
+                <Input
+                  id="amperage"
+                  type="number"
+                  value={installationForm.amperage}
+                  onChange={(e) =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      amperage: parseInt(e.target.value) || 0,
+                    }))
+                  }
+                  placeholder="20"
+                  min="1"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date_installation">Date d'installation *</Label>
+                <Input
+                  id="date_installation"
+                  type="date"
+                  value={installationForm.date_installation}
+                  onChange={(e) =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      date_installation: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cable_type">Type de câble</Label>
+                <Input
+                  id="cable_type"
+                  value={installationForm.cable_type}
+                  onChange={(e) =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      cable_type: e.target.value,
+                    }))
+                  }
+                  placeholder="Ex: Cuivre 2.5mm²"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="valeur_terre">Valeur terre (Ω)</Label>
+                <Input
+                  id="valeur_terre"
+                  type="number"
+                  value={installationForm.valeur_terre}
+                  onChange={(e) =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      valeur_terre: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  placeholder="15"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+            </div>
+
+            {/* Composantes du coffret */}
+            <div className="space-y-2">
+              <Label htmlFor="composantes_coffret">
+                Composantes du coffret
+              </Label>
+              <Textarea
+                id="composantes_coffret"
+                value={installationForm.composantes_coffret}
+                onChange={(e) =>
+                  setInstallationForm((prev) => ({
+                    ...prev,
+                    composantes_coffret: e.target.value,
+                  }))
+                }
+                placeholder="Ex: Disjoncteur principal 32A, Différentiel 30mA, Disjoncteurs divisionnaires..."
+                rows={3}
+              />
+            </div>
+
+            {/* Checkboxes de protection */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="protection_terre"
+                  checked={installationForm.protection_terre}
+                  onCheckedChange={(checked) =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      protection_terre: !!checked,
+                    }))
+                  }
+                />
+                <Label htmlFor="protection_terre">Protection terre</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="presence_differentiel"
+                  checked={installationForm.presence_differentiel}
+                  onCheckedChange={(checked) =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      presence_differentiel: !!checked,
+                    }))
+                  }
+                />
+                <Label htmlFor="presence_differentiel">
+                  Présence différentiel
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="barette_de_coupure"
+                  checked={installationForm.barette_de_coupure}
+                  onCheckedChange={(checked) =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      barette_de_coupure: !!checked,
+                    }))
+                  }
+                />
+                <Label htmlFor="barette_de_coupure">Barette de coupure</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="terre_dans_pc"
+                  checked={installationForm.terre_dans_pc}
+                  onCheckedChange={(checked) =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      terre_dans_pc: !!checked,
+                    }))
+                  }
+                />
+                <Label htmlFor="terre_dans_pc">Terre dans PC</Label>
+              </div>
+            </div>
+
+            {/* Commentaires */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="commentaire_cable">Commentaires câblage</Label>
+                <Textarea
+                  id="commentaire_cable"
+                  value={installationForm.commentaire_cable}
+                  onChange={(e) =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      commentaire_cable: e.target.value,
+                    }))
+                  }
+                  placeholder="Observations sur le câblage..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="commentaire_terre">Commentaires terre</Label>
+                <Textarea
+                  id="commentaire_terre"
+                  value={installationForm.commentaire_terre}
+                  onChange={(e) =>
+                    setInstallationForm((prev) => ({
+                      ...prev,
+                      commentaire_terre: e.target.value,
+                    }))
+                  }
+                  placeholder="Observations sur la mise à la terre..."
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            {/* TOUTES LES SECTIONS PHOTOS */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                Galerie Photos Complète
+              </h3>
+
+              {/* Photos du coffret */}
+              <div className="space-y-3 p-4 border rounded-lg bg-blue-50">
+                <Label className="text-sm font-medium text-blue-700">
+                  Photos du coffret électrique
+                </Label>
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/jpg"
+                    onChange={(e) =>
+                      handleFileChange(
+                        e.target.files,
+                        "photo_coffret",
+                        "installation"
+                      )
+                    }
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  {photoPreview["installation_photo_coffret"] && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {photoPreview["installation_photo_coffret"].map(
+                        (preview, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={preview}
+                              alt={`Coffret ${index + 1}`}
+                              className="w-full h-20 object-cover rounded border"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                              onClick={() =>
+                                removePhoto(
+                                  index,
+                                  "photo_coffret",
+                                  "installation"
+                                )
+                              }
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Photos câble électrique */}
+              <div className="space-y-3 p-4 border rounded-lg bg-green-50">
+                <Label className="text-sm font-medium text-green-700">
+                  Photos du câble électrique
+                </Label>
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/jpg"
+                    onChange={(e) =>
+                      handleFileChange(
+                        e.target.files,
+                        "photo_cable_electrique",
+                        "installation"
+                      )
+                    }
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  />
+                  {photoPreview["installation_photo_cable_electrique"] && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {photoPreview["installation_photo_cable_electrique"].map(
+                        (preview, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={preview}
+                              alt={`Câble ${index + 1}`}
+                              className="w-full h-20 object-cover rounded border"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                              onClick={() =>
+                                removePhoto(
+                                  index,
+                                  "photo_cable_electrique",
+                                  "installation"
+                                )
+                              }
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Photos type de câble */}
+              <div className="space-y-3 p-4 border rounded-lg bg-purple-50">
+                <Label className="text-sm font-medium text-purple-700">
+                  Photos du type de câble
+                </Label>
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/jpg"
+                    onChange={(e) =>
+                      handleFileChange(
+                        e.target.files,
+                        "photo_type_cable",
+                        "installation"
+                      )
+                    }
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                  />
+                  {photoPreview["installation_photo_type_cable"] && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {photoPreview["installation_photo_type_cable"].map(
+                        (preview, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={preview}
+                              alt={`Type câble ${index + 1}`}
+                              className="w-full h-20 object-cover rounded border"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                              onClick={() =>
+                                removePhoto(
+                                  index,
+                                  "photo_type_cable",
+                                  "installation"
+                                )
+                              }
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Photos barette de coupure */}
+              <div className="space-y-3 p-4 border rounded-lg bg-orange-50">
+                <Label className="text-sm font-medium text-orange-700">
+                  Photos de la barette de coupure
+                </Label>
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/jpg"
+                    onChange={(e) =>
+                      handleFileChange(
+                        e.target.files,
+                        "photo_barette_coupure",
+                        "installation"
+                      )
+                    }
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                  />
+                  {photoPreview["installation_photo_barette_coupure"] && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {photoPreview["installation_photo_barette_coupure"].map(
+                        (preview, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={preview}
+                              alt={`Barette ${index + 1}`}
+                              className="w-full h-20 object-cover rounded border"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                              onClick={() =>
+                                removePhoto(
+                                  index,
+                                  "photo_barette_coupure",
+                                  "installation"
+                                )
+                              }
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Photos terre PC */}
+              <div className="space-y-3 p-4 border rounded-lg bg-red-50">
+                <Label className="text-sm font-medium text-red-700">
+                  Photos de la terre dans PC
+                </Label>
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/jpg"
+                    onChange={(e) =>
+                      handleFileChange(
+                        e.target.files,
+                        "photo_terre_pc",
+                        "installation"
+                      )
+                    }
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                  />
+                  {photoPreview["installation_photo_terre_pc"] && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {photoPreview["installation_photo_terre_pc"].map(
+                        (preview, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={preview}
+                              alt={`Terre PC ${index + 1}`}
+                              className="w-full h-20 object-cover rounded border"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                              onClick={() =>
+                                removePhoto(
+                                  index,
+                                  "photo_terre_pc",
+                                  "installation"
+                                )
+                              }
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Boutons d'action */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowInstallationForm(false);
+                  setEditingInstallation(null);
+                  setPhotoPreview({});
+                }}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={() => {
+                  // Logique de sauvegarde
+                  toast({
+                    title: "Succès",
+                    description: editingInstallation
+                      ? "Installation modifiée"
+                      : "Installation créée",
+                  });
+                  setShowInstallationForm(false);
+                  setEditingInstallation(null);
+                  setPhotoPreview({});
+                }}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {editingInstallation ? "Modifier" : "Créer"} l'installation
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}{" "}
+      
+      {/* MODALE FORMULAIRE PRISE ÉLECTRIQUE */}
+      <Modal
+        isOpen={showPriseForm}
+        onClose={() => {
+          setShowPriseForm(false);
+          setEditingPrise(null);
+        }}
+        title={editingPrise ? "Modifier la prise électrique" : "Nouvelle prise électrique"}
+        size="xl"
+      >
+        <PriseElectriqueForm
+          initialData={editingPrise || undefined}
+          onSubmit={handlePriseSubmit}
+          onCancel={() => {
+            setShowPriseForm(false);
+            setEditingPrise(null);
+          }}
+          isEditing={!!editingPrise}
+          installationId={selectedInstallation?.id || 0}
+        />
+      </Modal>
+
+      {/* MODALE FORMULAIRE INTERRUPTEUR */}
+      <Modal
+        isOpen={showInterrupteurForm}
+        onClose={() => {
+          setShowInterrupteurForm(false);
+          setEditingInterrupteur(null);
+        }}
+        title={editingInterrupteur ? "Modifier l'interrupteur" : "Nouvel interrupteur"}
+        size="xl"
+      >
+        <InterrupteurForm
+          initialData={editingInterrupteur || undefined}
+          onSubmit={handleInterrupteurSubmit}
+          onCancel={() => {
+            setShowInterrupteurForm(false);
+            setEditingInterrupteur(null);
+          }}
+          isEditing={!!editingInterrupteur}
+          installationId={selectedInstallation?.id || 0}
+        />
+      </Modal>
+
+      {/* Anciens formulaires supprimés - remplacés par les modales ci-dessus */}
+      {/* 
+        ANCIENS FORMULAIRES DÉSACTIVÉS
+        Cette section contenait les anciens formulaires inline.
+        Ils sont maintenant remplacés par les modales ci-dessus.
+        Cette section sera supprimée dans une version future.
+        
+        Contenu désactivé pour éviter les erreurs de syntaxe.
+      */}
+
+            {/* Photos de la prise */}
+            <div className="space-y-3 p-4 border rounded-lg bg-blue-50">
+              <Label className="text-sm font-medium text-blue-700 flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                Photos de la prise électrique
+              </Label>
+              <div className="space-y-2">
+                <Input
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/jpg"
+                  onChange={(e) =>
+                    handleFileChange(e.target.files, "photos", "prise")
+                  }
+                  className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                <p className="text-xs text-gray-600">
+                  Formats acceptés: JPEG, PNG, JPG - Taille max: 5MB par photo
+                </p>
+                {photoPreview["prise_photos"] && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {photoPreview["prise_photos"].map((preview, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={preview}
+                          alt={`Prise ${index + 1}`}
+                          className="w-full h-20 object-cover rounded border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                          onClick={() => removePhoto(index, "photos", "prise")}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPriseForm(false);
+                  setEditingPrise(null);
+                  setPhotoPreview((prev) => ({ ...prev, prise_photos: [] }));
+                }}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handlePriseSubmit}
+                disabled={loading}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {editingPrise ? "Modifier" : "Créer"} la prise
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {/* ANCIEN FORMULAIRE INTERRUPTEUR - À SUPPRIMER */}
+      {false && showInterrupteurForm && selectedInstallation && (
+        <Card className="border-2 border-orange-200">
+          <CardHeader className="bg-orange-50">
+            <CardTitle className="flex items-center gap-2">
+              <ToggleLeft className="h-5 w-5" />
+              {editingInterrupteur
+                ? "Modifier Interrupteur"
+                : "Nouvel Interrupteur"}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Installation : {selectedInstallation.type_compteur} -{" "}
+              {selectedInstallation.configuration_compteur}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="interrupteur_reference">Référence *</Label>
+                <Input
+                  id="interrupteur_reference"
+                  value={interrupteurForm.reference}
+                  onChange={(e) =>
+                    setInterrupteurForm((prev) => ({
+                      ...prev,
+                      reference: e.target.value,
+                    }))
+                  }
+                  placeholder="I001"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="interrupteur_ordre">Ordre *</Label>
+                <Input
+                  id="interrupteur_ordre"
+                  type="number"
+                  value={interrupteurForm.ordre}
+                  onChange={(e) =>
+                    setInterrupteurForm((prev) => ({
+                      ...prev,
+                      ordre: parseInt(e.target.value) || 1,
+                    }))
+                  }
+                  placeholder="1"
+                  min="0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="interrupteur_etat">État *</Label>
+                <Select
+                  value={interrupteurForm.etat}
+                  onValueChange={(value: any) =>
+                    setInterrupteurForm((prev) => ({ ...prev, etat: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner l'état" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bon">Bon état</SelectItem>
+                    <SelectItem value="defectueux">Défectueux</SelectItem>
+                    <SelectItem value="non_installe">Non installé</SelectItem>
+                    <SelectItem value="a_remplacer">À remplacer</SelectItem>
+                    <SelectItem value="manquant">Manquant</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="type_interrupteur">Type d'interrupteur</Label>
+                <Select
+                  value={interrupteurForm.type_interrupteur}
+                  onValueChange={(value: string) =>
+                    setInterrupteurForm((prev) => ({
+                      ...prev,
+                      type_interrupteur: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner le type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="simple">Simple</SelectItem>
+                    <SelectItem value="double">Double</SelectItem>
+                    <SelectItem value="va_et_vient">Va-et-vient</SelectItem>
+                    <SelectItem value="poussoir">Poussoir</SelectItem>
+                    <SelectItem value="variateur">Variateur</SelectItem>
+                    <SelectItem value="detecteur">
+                      Détecteur de mouvement
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="interrupteur_localisation">Localisation</Label>
+                <Input
+                  id="interrupteur_localisation"
+                  value={interrupteurForm.localisation}
+                  onChange={(e) =>
+                    setInterrupteurForm((prev) => ({
+                      ...prev,
+                      localisation: e.target.value,
+                    }))
+                  }
+                  placeholder="Ex: Entrée, Couloir, Salon..."
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="interrupteur_commentaire">
+                Commentaires détaillés
+              </Label>
+              <Textarea
+                id="interrupteur_commentaire"
+                value={interrupteurForm.commentaire}
+                onChange={(e) =>
+                  setInterrupteurForm((prev) => ({
+                    ...prev,
+                    commentaire: e.target.value,
+                  }))
+                }
+                placeholder="Observations, fonctionnement, recommandations..."
+                rows={3}
+              />
+            </div>
+
+            {/* Photos de l'interrupteur */}
+            <div className="space-y-3 p-4 border rounded-lg bg-orange-50">
+              <Label className="text-sm font-medium text-orange-700 flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                Photos de l'interrupteur
+              </Label>
+              <div className="space-y-2">
+                <Input
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/jpg"
+                  onChange={(e) =>
+                    handleFileChange(e.target.files, "photos", "interrupteur")
+                  }
+                  className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                />
+                <p className="text-xs text-gray-600">
+                  Formats acceptés: JPEG, PNG, JPG - Taille max: 5MB par photo
+                </p>
+                {photoPreview["interrupteur_photos"] && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {photoPreview["interrupteur_photos"].map(
+                      (preview, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={preview}
+                            alt={`Interrupteur ${index + 1}`}
+                            className="w-full h-20 object-cover rounded border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                            onClick={() =>
+                              removePhoto(index, "photos", "interrupteur")
+                            }
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowInterrupteurForm(false);
+                  setEditingInterrupteur(null);
+                  setPhotoPreview((prev) => ({
+                    ...prev,
+                    interrupteur_photos: [],
+                  }));
+                }}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handleInterrupteurSubmit}
+                disabled={loading}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {editingInterrupteur ? "Modifier" : "Créer"} l'interrupteur
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {/* Modales dupliquées supprimées - gardées seulement en haut */}
+      >
+        <PriseElectriqueForm
+          initialData={editingPrise || undefined}
+          onSubmit={handlePriseSubmit}
+          onCancel={() => {
+            setShowPriseForm(false);
+            setEditingPrise(null);
+          }}
+          isEditing={!!editingPrise}
+          installationId={selectedInstallation?.id || 0}
+        />
+      </Modal>
+
+      {/* MODALE FORMULAIRE INTERRUPTEUR */}
+      <Modal
+        isOpen={showInterrupteurForm}
+        onClose={() => {
+          setShowInterrupteurForm(false);
+          setEditingInterrupteur(null);
+        }}
+        title={editingInterrupteur ? "Modifier l'interrupteur" : "Nouvel interrupteur"}
+        size="xl"
+      >
+        <InterrupteurForm
+          initialData={editingInterrupteur || undefined}
+          onSubmit={handleInterrupteurSubmit}
+          onCancel={() => {
+            setShowInterrupteurForm(false);
+            setEditingInterrupteur(null);
+          }}
+          isEditing={!!editingInterrupteur}
+          installationId={selectedInstallation?.id || 0}
+        />
+      </Modal>
+
+      {/* MODALE FORMULAIRE INSTALLATION */}
+      <Modal
+        isOpen={showInstallationForm}
+        onClose={handleInstallationCancel}
+        title={
+          editingInstallation
+            ? "Modifier l'installation"
+            : "Nouvelle installation électrique"
+        }
+        size="xl"
+      >
+        <InstallationForm
+          initialData={
+            editingInstallation
+              ? convertInstallationToForm(editingInstallation)
+              : undefined
+          }
+          onSubmit={handleInstallationSubmit}
+          onCancel={handleInstallationCancel}
+          isEditing={!!editingInstallation}
+        />
+      </Modal>
+      {/* MODAL PHOTO */}
+      {showPhotoModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+          onClick={() => setShowPhotoModal(false)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] p-4">
+            <img
+              src={getPhotoUrl(selectedPhoto)}
+              alt="Photo agrandie"
+              className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiAxNkwyMCAyNEwyOCAxNlYzMkgxMlYxNloiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
+              }}
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute top-2 right-2"
+              onClick={() => setShowPhotoModal(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

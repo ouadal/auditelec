@@ -1,689 +1,320 @@
 "use client";
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Plus, Building } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useToast } from "@/hooks/use-toast";
+import { Modal } from "@/components/ui/modal";
+
+import { InstallationForm } from "@/components/electrical/InstallationForm";
+import { PriseElectriqueSection } from "@/components/electrical/PriseElectriqueSection";
+import { InterrupteurSection } from "@/components/electrical/InterrupteurSection";
+import { InstallationCard } from "@/components/electrical/InstallationCard";
+import { PhotoModal } from "@/components/electrical/PhotoModal";
+import { ZoomModal } from "@/components/electrical/ZoomModal";
+import { ClientSelector } from "@/components/electrical/ClientSelector";
+import { installationService } from "../../../../services/electricalApi";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
-import { Upload, Save, Image as ImageIcon } from "lucide-react";
-import Image from "next/image";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+  Installation,
+  InstallationForm as InstallationFormType,
+} from "@/types/electrical";
 
 export default function ElectricalPage() {
-  const [groundProtection, setGroundProtection] = useState("no");
-  const [meterType, setMeterType] = useState("MT");
+  const [installations, setInstallations] = useState<Installation[]>([]);
+  const [allInstallations, setAllInstallations] = useState<Installation[]>([]);
+  const [selectedInstallation, setSelectedInstallation] =
+    useState<Installation | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showInstallationForm, setShowInstallationForm] = useState(false);
+  const [editingInstallation, setEditingInstallation] =
+    useState<Installation | null>(null);
+  const [showPhotosModal, setShowPhotosModal] = useState(false);
+  const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
 
-  const panelImages = [
-    PlaceHolderImages.find((p) => p.id === "electrical-panel"),
-    PlaceHolderImages.find((p) => p.id === "electrical-panel-2"),
-    PlaceHolderImages.find((p) => p.id === "electrical-panel-3"),
-    PlaceHolderImages.find((p) => p.id === "electrical-panel-4"),
-  ].filter(Boolean);
+  const { toast } = useToast();
 
-  const cableImages = [
-    PlaceHolderImages.find((p) => p.id === "cable-photo-1"),
-    PlaceHolderImages.find((p) => p.id === "cable-photo-2"),
-    PlaceHolderImages.find((p) => p.id === "cable-photo-3"),
-    PlaceHolderImages.find((p) => p.id === "cable-photo-4"),
-  ].filter(Boolean);
+  // Charger les installations au démarrage
+  useEffect(() => {
+    loadInstallations();
+  }, []);
 
-  const outletImages = [
-    PlaceHolderImages.find((p) => p.id === "outlet-photo-1"),
-    PlaceHolderImages.find((p) => p.id === "outlet-photo-2"),
-    PlaceHolderImages.find((p) => p.id === "outlet-photo-3"),
-    PlaceHolderImages.find((p) => p.id === "outlet-photo-4"),
-  ].filter(Boolean);
+  const loadInstallations = async () => {
+    try {
+      setLoading(true);
+      const response = await installationService.getAll();
+      console.log("Installations chargées:", response);
 
-  const switchImages = [
-    PlaceHolderImages.find((p) => p.id === "switch-photo-1"),
-    PlaceHolderImages.find((p) => p.id === "switch-photo-2"),
-    PlaceHolderImages.find((p) => p.id === "switch-photo-3"),
-    PlaceHolderImages.find((p) => p.id === "switch-photo-4"),
-  ].filter(Boolean);
+      const installations = response.data || [];
+      setAllInstallations(installations);
+      
+      // Filtrer par client si un client est sélectionné
+      filterInstallationsByClient(installations, selectedClientId);
+    } catch (error) {
+      console.error("Erreur lors du chargement:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les installations",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const groundMeterImages = [
-    PlaceHolderImages.find((p) => p.id === "ground-meter-1"),
-    PlaceHolderImages.find((p) => p.id === "ground-meter-2"),
-    PlaceHolderImages.find((p) => p.id === "ground-meter-3"),
-    PlaceHolderImages.find((p) => p.id === "ground-meter-4"),
-  ].filter(Boolean);
+  const filterInstallationsByClient = (installations: Installation[], clientId: number | null) => {
+    let filteredInstallations = installations;
+    
+    if (clientId) {
+      filteredInstallations = installations.filter(
+        installation => installation.client_id === clientId
+      );
+    }
+    
+    setInstallations(filteredInstallations);
+    
+    // Sélectionner la première installation filtrée ou réinitialiser
+    if (filteredInstallations.length > 0) {
+      // Si l'installation actuellement sélectionnée n'est plus dans la liste filtrée
+      if (!selectedInstallation || !filteredInstallations.find(i => i.id === selectedInstallation.id)) {
+        setSelectedInstallation(filteredInstallations[0]);
+      }
+    } else {
+      setSelectedInstallation(null);
+    }
+  };
 
-  const groundPcImages = [
-    PlaceHolderImages.find((p) => p.id === "ground-pc-1"),
-    PlaceHolderImages.find((p) => p.id === "ground-pc-2"),
-    PlaceHolderImages.find((p) => p.id === "ground-pc-3"),
-    PlaceHolderImages.find((p) => p.id === "ground-pc-4"),
-  ].filter(Boolean);
+  const handleClientSelect = (clientId: number | null) => {
+    setSelectedClientId(clientId);
+    filterInstallationsByClient(allInstallations, clientId);
+  };
 
-  const differentialImages = [
-    PlaceHolderImages.find((p) => p.id === "differential-1"),
-    PlaceHolderImages.find((p) => p.id === "differential-2"),
-    PlaceHolderImages.find((p) => p.id === "differential-3"),
-    PlaceHolderImages.find((p) => p.id === "differential-4"),
-  ].filter(Boolean);
+  const handleInstallationSelect = (installation: Installation) => {
+    setSelectedInstallation(installation);
+  };
+
+  const handleInstallationSubmit = async (formData: InstallationFormType) => {
+    try {
+      setLoading(true);
+
+      if (editingInstallation) {
+        await installationService.update(editingInstallation.id!, formData);
+        toast({
+          title: "Succès",
+          description: "Installation modifiée avec succès",
+        });
+      } else {
+        await installationService.create(formData);
+        toast({
+          title: "Succès",
+          description: "Installation créée avec succès",
+        });
+      }
+
+      setShowInstallationForm(false);
+      setEditingInstallation(null);
+      await loadInstallations();
+    } catch (error: any) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder l'installation",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInstallationCancel = () => {
+    setShowInstallationForm(false);
+    setEditingInstallation(null);
+  };
+
+  const handleViewPhotos = (
+    installation: Installation,
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+    setEditingInstallation(installation);
+    setShowPhotosModal(true);
+  };
+
+  const handleClosePhotosModal = () => {
+    setShowPhotosModal(false);
+    setEditingInstallation(null);
+  };
+
+  const handleDeleteInstallation = async (installation: Installation) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette installation ?"))
+      return;
+
+    try {
+      await installationService.delete(installation.id!);
+      toast({
+        title: "Succès",
+        description: "Installation supprimée avec succès",
+      });
+      await loadInstallations();
+      if (selectedInstallation?.id === installation.id) {
+        setSelectedInstallation(null);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer l'installation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <LoadingSpinner
+          size="lg"
+          text="Chargement des installations électriques..."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Sélecteur de client */}
+      <ClientSelector
+        selectedClientId={selectedClientId}
+        onClientSelect={handleClientSelect}
+        onRefresh={loadInstallations}
+      />
+
+      {/* En-tête avec sélecteur d'installation */}
       <Card>
         <CardHeader>
-          <CardTitle>Configuration du Compteur</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Building className="h-6 w-6 text-blue-600" />
+              <div>
+                <CardTitle>Installations Électriques</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Gestion des installations, prises et interrupteurs
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => setShowInstallationForm(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle Installation
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <RadioGroup
-              value={meterType}
-              onValueChange={setMeterType}
-              className="flex items-center gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="BT" id="bt-meter" />
-                <Label htmlFor="bt-meter">BT</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="MT" id="mt-meter" />
-                <Label htmlFor="mt-meter">MT</Label>
-              </div>
-            </RadioGroup>
-
-            {meterType === "MT" && (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 pt-4 border-t">
-                <div className="space-y-2">
-                  <Label htmlFor="wires">Nombre de fils</Label>
-                  <Select>
-                    <SelectTrigger id="wires">
-                      <SelectValue placeholder="Sélectionner..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2">2 fils</SelectItem>
-                      <SelectItem value="4">4 fils</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="amperage">Ampérage</Label>
-                  <Select>
-                    <SelectTrigger id="amperage">
-                      <SelectValue placeholder="Sélectionner..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60].map(
-                        (amp) => (
-                          <SelectItem key={amp} value={String(amp)}>
-                            {amp} A
-                          </SelectItem>
-                        )
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Coffret Électrique</CardTitle>
-            <CardDescription>
-              Composants et photo du coffret principal.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="components">Composants du coffret</Label>
-              <Textarea
-                id="components"
-                placeholder="Lister les composants : disjoncteurs, interrupteurs différentiels, etc."
-              />
+          {installations.length === 0 ? (
+            <div className="text-center py-8">
+              <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Aucune installation trouvée</p>
             </div>
-
+          ) : (
             <div className="space-y-4">
-              <Label>Photos du coffret</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {panelImages.map((image, index) => (
-                  <Card key={image!.id}>
-                    <CardContent className="p-2">
-                      <div className="aspect-[4/3] rounded-md border border-dashed flex items-center justify-center bg-muted overflow-hidden">
-                        {image ? (
-                          <Image
-                            src={image.imageUrl}
-                            alt={image.description}
-                            data-ai-hint={image.imageHint}
-                            width={200}
-                            height={150}
-                            className="object-cover w-full h-full"
-                          />
-                        ) : (
-                          <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                        )}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="w-full mt-2"
-                      >
-                        <label
-                          htmlFor={`panel-photo-upload-${index}`}
-                          className="cursor-pointer"
-                        >
-                          <Upload className="mr-2 h-3 w-3" /> Importer
-                          <input
-                            type="file"
-                            id={`panel-photo-upload-${index}`}
-                            className="sr-only"
-                          />
-                        </label>
-                      </Button>
-                    </CardContent>
-                  </Card>
+              <Label>Sélectionner une installation :</Label>
+              <div className="grid gap-3">
+                {installations.map((installation) => (
+                  <InstallationCard
+                    key={installation.id}
+                    installation={installation}
+                    isSelected={selectedInstallation?.id === installation.id}
+                    onSelect={handleInstallationSelect}
+                    onEdit={(installation, e) => {
+                      e.stopPropagation();
+                      setEditingInstallation(installation);
+                      setShowInstallationForm(true);
+                    }}
+                    onDelete={handleDeleteInstallation}
+                    onViewPhotos={handleViewPhotos}
+                  />
                 ))}
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="comments-panel">Commentaires</Label>
-              <Textarea
-                id="comments-panel"
-                placeholder="Ajouter des observations sur le coffret électrique..."
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Câbles Électriques</CardTitle>
-            <CardDescription>Détails sur les câbles utilisés.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="cable-type">Cable principal</Label>
-              <Input id="cable-type" placeholder="ex: Câble armé 4x25mm²" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cable-condition">État général du câblage</Label>
-              <Select>
-                <SelectTrigger id="cable-condition">
-                  <SelectValue placeholder="Évaluer l'état..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bon">Bon</SelectItem>
-                  <SelectItem value="defectueux">Défectueux</SelectItem>
-                  <SelectItem value="non_installe">Non installé</SelectItem>
-                  <SelectItem value="a_remplacer">À remplacer</SelectItem>
-                  <SelectItem value="manquant">Manquant</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-4 pt-4">
-              <Label>Photos des câbles</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {cableImages.map((image, index) => (
-                  <Card key={image!.id}>
-                    <CardContent className="p-2">
-                      <div className="aspect-[4/3] rounded-md border border-dashed flex items-center justify-center bg-muted overflow-hidden">
-                        {image ? (
-                          <Image
-                            src={image.imageUrl}
-                            alt={image.description}
-                            data-ai-hint={image.imageHint}
-                            width={200}
-                            height={150}
-                            className="object-cover w-full h-full"
-                          />
-                        ) : (
-                          <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                        )}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="w-full mt-2"
-                      >
-                        <label
-                          htmlFor={`cable-photo-upload-${index}`}
-                          className="cursor-pointer"
-                        >
-                          <Upload className="mr-2 h-3 w-3" /> Importer
-                          <input
-                            type="file"
-                            id={`cable-photo-upload-${index}`}
-                            className="sr-only"
-                          />
-                        </label>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="comments-cables">Commentaires</Label>
-              <Textarea
-                id="comments-cables"
-                placeholder="Ajouter des observations sur les câbles..."
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Protection terre</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Présence protection Terre</Label>
-              <RadioGroup
-                value={groundProtection}
-                onValueChange={setGroundProtection}
-                className="flex items-center gap-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yes" id="ground-yes" />
-                  <Label htmlFor="ground-yes">Oui</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="no" id="ground-no" />
-                  <Label htmlFor="ground-no">Non</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            {groundProtection === "yes" && (
-              <div className="space-y-6 pl-4 border-l-2 border-primary/20">
-                <div className="space-y-4">
-                  <Label>Barrette de compteur</Label>
-                  <RadioGroup
-                    defaultValue="no"
-                    className="flex items-center gap-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="yes" id="meter-strip-yes" />
-                      <Label htmlFor="meter-strip-yes">Oui</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="no" id="meter-strip-no" />
-                      <Label htmlFor="meter-strip-no">Non</Label>
-                    </div>
-                  </RadioGroup>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-                    {groundMeterImages.map((image, index) => (
-                      <Card key={image!.id}>
-                        <CardContent className="p-2">
-                          <div className="aspect-[4/3] rounded-md border border-dashed flex items-center justify-center bg-muted overflow-hidden">
-                            {image ? (
-                              <Image
-                                src={image.imageUrl}
-                                alt={image.description}
-                                data-ai-hint={image.imageHint}
-                                width={200}
-                                height={150}
-                                className="object-cover w-full h-full"
-                              />
-                            ) : (
-                              <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                            )}
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="w-full mt-2"
-                          >
-                            <label
-                              htmlFor={`ground-meter-upload-${index}`}
-                              className="cursor-pointer"
-                            >
-                              <Upload className="mr-2 h-3 w-3" /> Importer
-                              <input
-                                type="file"
-                                id={`ground-meter-upload-${index}`}
-                                className="sr-only"
-                              />
-                            </label>
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="ground-value">Valeur Terre (Ω)</Label>
-                  <Input
-                    id="ground-value"
-                    placeholder="ex: 10"
-                    className="max-w-xs"
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <Label>Terre dans la PC</Label>
-                  <RadioGroup
-                    defaultValue="no"
-                    className="flex items-center gap-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="yes" id="pc-ground-yes" />
-                      <Label htmlFor="pc-ground-yes">Oui</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="no" id="pc-ground-no" />
-                      <Label htmlFor="pc-ground-no">Non</Label>
-                    </div>
-                  </RadioGroup>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-                    {groundPcImages.map((image, index) => (
-                      <Card key={image!.id}>
-                        <CardContent className="p-2">
-                          <div className="aspect-[4/3] rounded-md border border-dashed flex items-center justify-center bg-muted overflow-hidden">
-                            {image ? (
-                              <Image
-                                src={image.imageUrl}
-                                alt={image.description}
-                                data-ai-hint={image.imageHint}
-                                width={200}
-                                height={150}
-                                className="object-cover w-full h-full"
-                              />
-                            ) : (
-                              <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                            )}
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="w-full mt-2"
-                          >
-                            <label
-                              htmlFor={`ground-pc-upload-${index}`}
-                              className="cursor-pointer"
-                            >
-                              <Upload className="mr-2 h-3 w-3" /> Importer
-                              <input
-                                type="file"
-                                id={`ground-pc-upload-${index}`}
-                                className="sr-only"
-                              />
-                            </label>
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <Label>Présence du Différentiel</Label>
-                  <RadioGroup
-                    defaultValue="no"
-                    className="flex items-center gap-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="yes" id="diff-yes" />
-                      <Label htmlFor="diff-yes">Oui</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="no" id="diff-no" />
-                      <Label htmlFor="diff-no">Non</Label>
-                    </div>
-                  </RadioGroup>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-                    {differentialImages.map((image, index) => (
-                      <Card key={image!.id}>
-                        <CardContent className="p-2">
-                          <div className="aspect-[4/3] rounded-md border border-dashed flex items-center justify-center bg-muted overflow-hidden">
-                            {image ? (
-                              <Image
-                                src={image.imageUrl}
-                                alt={image.description}
-                                data-ai-hint={image.imageHint}
-                                width={200}
-                                height={150}
-                                className="object-cover w-full h-full"
-                              />
-                            ) : (
-                              <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                            )}
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="w-full mt-2"
-                          >
-                            <label
-                              htmlFor={`diff-upload-${index}`}
-                              className="cursor-pointer"
-                            >
-                              <Upload className="mr-2 h-3 w-3" /> Importer
-                              <input
-                                type="file"
-                                id={`diff-upload-${index}`}
-                                className="sr-only"
-                              />
-                            </label>
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="comments-ground">Commentaires</Label>
-                  <Textarea
-                    id="comments-ground"
-                    placeholder="Ajouter des observations sur la protection terre..."
-                  />
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Les prises electriques</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="outlet-condition">État des prises</Label>
-            <Select>
-              <SelectTrigger id="outlet-condition">
-                <SelectValue placeholder="Évaluer l'état..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bon">Bon</SelectItem>
-                <SelectItem value="defectueux">Défectueux</SelectItem>
-                <SelectItem value="non_installe">Non installé</SelectItem>
-                <SelectItem value="a_remplacer">À remplacer</SelectItem>
-                <SelectItem value="manquant">Manquant</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-4 pt-4">
-            <Label>Photos des prises</Label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {outletImages.map((image, index) => (
-                <Card key={image!.id}>
-                  <CardContent className="p-2">
-                    <div className="aspect-[4/3] rounded-md border border-dashed flex items-center justify-center bg-muted overflow-hidden">
-                      {image ? (
-                        <Image
-                          src={image.imageUrl}
-                          alt={image.description}
-                          data-ai-hint={image.imageHint}
-                          width={200}
-                          height={150}
-                          className="object-cover w-full h-full"
-                        />
-                      ) : (
-                        <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                      )}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="w-full mt-2"
-                    >
-                      <label
-                        htmlFor={`outlet-photo-upload-${index}`}
-                        className="cursor-pointer"
-                      >
-                        <Upload className="mr-2 h-3 w-3" /> Importer
-                        <input
-                          type="file"
-                          id={`outlet-photo-upload-${index}`}
-                          className="sr-only"
-                        />
-                      </label>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="comments-outlets">Commentaires</Label>
-            <Textarea
-              id="comments-outlets"
-              placeholder="Ajouter des observations sur les prises électriques..."
-            />
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Les interrupteurs</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="switch-reference">Référence</Label>
-              <Input id="switch-reference" placeholder="ex: INT-001" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="switch-location">Localisation</Label>
-              <Input
-                id="switch-location"
-                placeholder="ex: Bureau du directeur"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="switch-type">Type d'interrupteur</Label>
-              <Input id="switch-type" placeholder="ex: Va-et-vient" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="switch-order">Ordre</Label>
-              <Input id="switch-order" type="number" placeholder="ex: 1" />
-            </div>
-          </div>
+      {/* Section des équipements */}
+      {selectedInstallation && (
+        <div className="space-y-6">
+          {/* Section Prises Électriques */}
+          <PriseElectriqueSection installationId={selectedInstallation.id} />
 
-          <div className="space-y-2 pt-4">
-            <Label htmlFor="switch-condition">État des interrupteurs</Label>
-            <Select>
-              <SelectTrigger id="switch-condition">
-                <SelectValue placeholder="Évaluer l'état..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bon">Bon</SelectItem>
-                <SelectItem value="defectueux">Défectueux</SelectItem>
-                <SelectItem value="non_installe">Non installé</SelectItem>
-                <SelectItem value="a_remplacer">À remplacer</SelectItem>
-                <SelectItem value="manquant">Manquant</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Section Interrupteurs */}
+          <InterrupteurSection installationId={selectedInstallation.id} />
+        </div>
+      )}
 
-          <div className="space-y-4 pt-4">
-            <Label>Photos des interrupteurs</Label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {switchImages.map((image, index) => (
-                <Card key={image!.id}>
-                  <CardContent className="p-2">
-                    <div className="aspect-[4/3] rounded-md border border-dashed flex items-center justify-center bg-muted overflow-hidden">
-                      {image ? (
-                        <Image
-                          src={image.imageUrl}
-                          alt={image.description}
-                          data-ai-hint={image.imageHint}
-                          width={200}
-                          height={150}
-                          className="object-cover w-full h-full"
-                        />
-                      ) : (
-                        <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                      )}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="w-full mt-2"
-                    >
-                      <label
-                        htmlFor={`switch-photo-upload-${index}`}
-                        className="cursor-pointer"
-                      >
-                        <Upload className="mr-2 h-3 w-3" /> Importer
-                        <input
-                          type="file"
-                          id={`switch-photo-upload-${index}`}
-                          className="sr-only"
-                        />
-                      </label>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+      {/* MODALE FORMULAIRE INSTALLATION */}
+      <Modal
+        isOpen={showInstallationForm}
+        onClose={handleInstallationCancel}
+        title={
+          editingInstallation
+            ? "Modifier l'installation"
+            : "Nouvelle installation électrique"
+        }
+        size="xl"
+      >
+        <div className="p-6">
+          <InstallationForm
+            initialData={
+              editingInstallation
+                ? {
+                    client_id: editingInstallation.client_id,
+                    type_compteur: editingInstallation.type_compteur,
+                    configuration_compteur:
+                      editingInstallation.configuration_compteur,
+                    amperage: editingInstallation.amperage,
+                    composantes_coffret:
+                      editingInstallation.composantes_coffret || "",
+                    cable_type: editingInstallation.cable_type || "",
+                    commentaire_cable:
+                      editingInstallation.commentaire_cable || "",
+                    protection_terre:
+                      editingInstallation.protection_terre || false,
+                    barette_de_coupure:
+                      editingInstallation.barette_de_coupure || false,
+                    valeur_terre: editingInstallation.valeur_terre || 0,
+                    terre_dans_pc: editingInstallation.terre_dans_pc || false,
+                    presence_differentiel:
+                      editingInstallation.presence_differentiel || false,
+                    commentaire_terre:
+                      editingInstallation.commentaire_terre || "",
+                    date_installation: editingInstallation.date_installation,
+                    photo_coffret: [],
+                    photo_cable_electrique: [],
+                    photo_type_cable: [],
+                    photo_barette_coupure: [],
+                    photo_terre_pc: [],
+                  }
+                : undefined
+            }
+            onSubmit={handleInstallationSubmit}
+            onCancel={handleInstallationCancel}
+            isEditing={!!editingInstallation}
+          />
+        </div>
+      </Modal>
 
-          <div className="space-y-2">
-            <Label htmlFor="comments-switches">Commentaires</Label>
-            <Textarea
-              id="comments-switches"
-              placeholder="Ajouter des observations sur les interrupteurs..."
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* MODALE PHOTOS */}
+      <PhotoModal
+        isOpen={showPhotosModal}
+        onClose={handleClosePhotosModal}
+        installation={editingInstallation}
+        onPhotoClick={setZoomedPhoto}
+      />
 
-      <div className="flex justify-end">
-        <Button>
-          <Save className="mr-2 h-4 w-4" />
-          Enregistrer l'Installation
-        </Button>
-      </div>
+      {/* MODALE ZOOM PHOTO */}
+      <ZoomModal photoUrl={zoomedPhoto} onClose={() => setZoomedPhoto(null)} />
     </div>
   );
 }
