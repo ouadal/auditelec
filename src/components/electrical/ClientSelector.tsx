@@ -4,7 +4,13 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Users, Building, RefreshCw } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { clientService } from "../../../services/electricalApi";
@@ -24,7 +30,11 @@ interface ClientSelectorProps {
   onRefresh?: () => void;
 }
 
-export function ClientSelector({ selectedClientId, onClientSelect, onRefresh }: ClientSelectorProps) {
+export function ClientSelector({
+  selectedClientId,
+  onClientSelect,
+  onRefresh,
+}: ClientSelectorProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,15 +46,16 @@ export function ClientSelector({ selectedClientId, onClientSelect, onRefresh }: 
       console.log("🔄 Chargement des clients...");
       const response = await clientService.getAll();
       console.log("✅ Réponse API clients:", response);
-      
+
       const clientsData = response.data || [];
       console.log("📊 Nombre de clients trouvés:", clientsData.length);
       setClients(clientsData);
     } catch (error) {
       console.error("❌ Erreur lors du chargement des clients:", error);
-      if (error.response) {
-        console.error("Status:", error.response.status);
-        console.error("Data:", error.response.data);
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as any;
+        console.error("Status:", axiosError.response?.status);
+        console.error("Data:", axiosError.response?.data);
       }
       setError("Impossible de charger les clients");
     } finally {
@@ -64,7 +75,9 @@ export function ClientSelector({ selectedClientId, onClientSelect, onRefresh }: 
     }
   };
 
-  const selectedClient = clients.find(client => client.id === selectedClientId);
+  const selectedClient = clients.find(
+    (client) => client.id === selectedClientId
+  );
 
   return (
     <Card>
@@ -83,7 +96,9 @@ export function ClientSelector({ selectedClientId, onClientSelect, onRefresh }: 
             }}
             disabled={loading}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+            />
             Actualiser
           </Button>
         </div>
@@ -106,7 +121,11 @@ export function ClientSelector({ selectedClientId, onClientSelect, onRefresh }: 
                 disabled={loading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={loading ? "Chargement..." : "Sélectionner un client"} />
+                  <SelectValue
+                    placeholder={
+                      loading ? "Chargement..." : "Sélectionner un client"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">
@@ -120,7 +139,9 @@ export function ClientSelector({ selectedClientId, onClientSelect, onRefresh }: 
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <Building className="h-4 w-4" />
-                          <span className="font-medium">{client.contact_nom}</span>
+                          <span className="font-medium">
+                            {client.contact_nom}
+                          </span>
                         </div>
                         {client.nom_entreprise && (
                           <span className="text-sm text-gray-500 ml-6">
@@ -139,17 +160,31 @@ export function ClientSelector({ selectedClientId, onClientSelect, onRefresh }: 
               <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Building className="h-4 w-4 text-blue-600" />
-                  <span className="font-medium text-blue-900">Client sélectionné</span>
+                  <span className="font-medium text-blue-900">
+                    Client sélectionné
+                  </span>
                 </div>
                 <div className="text-sm space-y-1">
-                  <p><span className="font-medium">Nom:</span> {selectedClient.contact_nom}</p>
+                  <p>
+                    <span className="font-medium">Nom:</span>{" "}
+                    {selectedClient.contact_nom}
+                  </p>
                   {selectedClient.contact_fonction && (
-                    <p><span className="font-medium">Fonction:</span> {selectedClient.contact_fonction}</p>
+                    <p>
+                      <span className="font-medium">Fonction:</span>{" "}
+                      {selectedClient.contact_fonction}
+                    </p>
                   )}
                   {selectedClient.nom_entreprise && (
-                    <p><span className="font-medium">Entreprise:</span> {selectedClient.nom_entreprise}</p>
+                    <p>
+                      <span className="font-medium">Entreprise:</span>{" "}
+                      {selectedClient.nom_entreprise}
+                    </p>
                   )}
-                  <p><span className="font-medium">Email:</span> {selectedClient.contact_email}</p>
+                  <p>
+                    <span className="font-medium">Email:</span>{" "}
+                    {selectedClient.contact_email}
+                  </p>
                 </div>
               </div>
             )}
