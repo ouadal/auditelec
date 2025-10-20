@@ -1,4 +1,5 @@
 import api from './api';
+import axios from 'axios';
 
 // Fonctions d'aide pour les appels API
 export const apiHelpers = {
@@ -14,11 +15,11 @@ export const apiHelpers = {
 
   // Clients
   clients: {
-    getAll: () => api.get('/clients'),
-    getById: (id) => api.get(`/clients/${id}`),
-    create: (data) => api.post('/clients', data),
-    update: (id, data) => api.put(`/clients/${id}`, data),
-    delete: (id) => api.delete(`/clients/${id}`),
+    getAll: () => axios.get('http://127.0.0.1:8000/api-web/clients'),
+    getById: (id) => axios.get(`http://127.0.0.1:8000/api-web/clients/${id}`),
+    create: (data) => axios.post('http://127.0.0.1:8000/api-web/clients', data),
+    update: (id, data) => axios.put(`http://127.0.0.1:8000/api-web/clients/${id}`, data),
+    delete: (id) => axios.delete(`http://127.0.0.1:8000/api-web/clients/${id}`),
   },
 
   // Audits
