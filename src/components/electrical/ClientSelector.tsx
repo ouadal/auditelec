@@ -43,21 +43,21 @@ export function ClientSelector({
     try {
       setLoading(true);
       setError(null);
-      console.log("🔄 Chargement des clients...");
+      console.log("🔄 Chargement des projets...");
       const response = await clientService.getAll();
-      console.log("✅ Réponse API clients:", response);
+      console.log("✅ Réponse API projets:", response);
 
       const clientsData = response.data || [];
-      console.log("📊 Nombre de clients trouvés:", clientsData.length);
+      console.log("📊 Nombre de projets trouvés:", clientsData.length);
       setClients(clientsData);
     } catch (error) {
-      console.error("❌ Erreur lors du chargement des clients:", error);
+      console.error("❌ Erreur lors du chargement des projets:", error);
       if (error && typeof error === "object" && "response" in error) {
         const axiosError = error as any;
         console.error("Status:", axiosError.response?.status);
         console.error("Data:", axiosError.response?.data);
       }
-      setError("Impossible de charger les clients");
+      setError("Impossible de charger les projets");
     } finally {
       setLoading(false);
     }
@@ -85,7 +85,7 @@ export function ClientSelector({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Users className="h-5 w-5 text-blue-600" />
-            <CardTitle className="text-lg">Sélection du Client</CardTitle>
+            <CardTitle className="text-lg">Sélection du Projet</CardTitle>
           </div>
           <Button
             variant="outline"
@@ -114,7 +114,7 @@ export function ClientSelector({
         ) : (
           <>
             <div className="space-y-2">
-              <Label>Client :</Label>
+              <Label>Projet :</Label>
               <Select
                 value={selectedClientId ? selectedClientId.toString() : "all"}
                 onValueChange={handleClientChange}
@@ -123,7 +123,7 @@ export function ClientSelector({
                 <SelectTrigger>
                   <SelectValue
                     placeholder={
-                      loading ? "Chargement..." : "Sélectionner un client"
+                      loading ? "Chargement..." : "Sélectionner un projet"
                     }
                   />
                 </SelectTrigger>
@@ -131,7 +131,7 @@ export function ClientSelector({
                   <SelectItem value="all">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      Tous les clients
+                      Tous les projets
                     </div>
                   </SelectItem>
                   {clients.map((client) => (
@@ -155,13 +155,13 @@ export function ClientSelector({
               </Select>
             </div>
 
-            {/* Informations du client sélectionné */}
+            {/* Informations du projet sélectionné */}
             {selectedClient && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Building className="h-4 w-4 text-blue-600" />
                   <span className="font-medium text-blue-900">
-                    Client sélectionné
+                    Projet sélectionné
                   </span>
                 </div>
                 <div className="text-sm space-y-1">
@@ -191,7 +191,7 @@ export function ClientSelector({
 
             {loading && (
               <div className="flex items-center justify-center py-4">
-                <LoadingSpinner size="sm" text="Chargement des clients..." />
+                <LoadingSpinner size="sm" text="Chargement des projets..." />
               </div>
             )}
           </>

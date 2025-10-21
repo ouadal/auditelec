@@ -31,12 +31,13 @@ import Image from 'next/image';
 
 const pageTitles: { [key: string]: string } = {
   '/dashboard': 'Tableau de Bord',
-  '/dashboard/clients': 'Gestion des Clients',
+  '/dashboard/clients': 'Gestion des Projets',
   '/dashboard/building-info': 'Gestion des Bâtiments',
   '/dashboard/electrical': 'Installation Électrique',
   '/dashboard/audit': 'Configuration de l\'Audit',
-  '/dashboard/inventory': 'Inventaire des Équipements',
-  '/dashboard/energy': 'Calcul Énergétique',
+  '/dashboard/equipements': 'Équipements & Énergie',
+  '/dashboard/inventory': 'Inventaire des Équipements', // Ancien lien pour compatibilité
+  '/dashboard/energy': 'Calcul Énergétique', // Ancien lien pour compatibilité
   '/dashboard/reports': 'Rapports et Exports',
   '/dashboard/settings': 'Paramètres',
 };

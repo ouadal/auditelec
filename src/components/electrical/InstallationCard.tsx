@@ -55,7 +55,7 @@ export function InstallationCard({
                 </div>
                 {installation.client && (
                   <div className="text-xs text-blue-600 font-medium">
-                    Client: {installation.client.contact_nom}
+                    Projet: {installation.client.contact_nom}
                   </div>
                 )}
               </div>

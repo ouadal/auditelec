@@ -698,10 +698,17 @@ export default function AuditPage() {
             <div>
               <CardTitle>Ajout des Pièces</CardTitle>
               <CardDescription>
-                Renseignez les informations pour chaque pièce auditée.
+                {selectedBatiment 
+                  ? "Renseignez les informations pour chaque pièce auditée."
+                  : "⚠️ Veuillez d'abord sélectionner un bâtiment pour ajouter des pièces."}
               </CardDescription>
             </div>
-            <Button onClick={addRoom}>
+            <Button 
+              onClick={addRoom}
+              disabled={!selectedBatiment}
+              className={!selectedBatiment ? "opacity-50 cursor-not-allowed" : ""}
+              title={!selectedBatiment ? "Sélectionnez d'abord un bâtiment" : "Ajouter une nouvelle pièce"}
+            >
               <PlusCircle className="mr-2 h-4 w-4" />
               Ajouter une pièce
             </Button>
@@ -838,14 +845,6 @@ export default function AuditPage() {
           </Table>
         </CardContent>
       </Card>
-
-      {/* Bouton de sauvegarde */}
-      <div className="flex justify-end">
-        <Button onClick={saveConfig}>
-          <Save className="mr-2 h-4 w-4" />
-          Enregistrer la Configuration
-        </Button>
-      </div>
     </div>
   );
 }

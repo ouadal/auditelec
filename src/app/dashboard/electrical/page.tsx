@@ -50,7 +50,7 @@ export default function ElectricalPage() {
 
       const installations = response.data || [];
       setAllInstallations(installations);
-      
+
       // Filtrer par client si un client est sélectionné
       filterInstallationsByClient(installations, selectedClientId);
     } catch (error) {
@@ -65,21 +65,27 @@ export default function ElectricalPage() {
     }
   };
 
-  const filterInstallationsByClient = (installations: Installation[], clientId: number | null) => {
+  const filterInstallationsByClient = (
+    installations: Installation[],
+    clientId: number | null
+  ) => {
     let filteredInstallations = installations;
-    
+
     if (clientId) {
       filteredInstallations = installations.filter(
-        installation => installation.client_id === clientId
+        (installation) => installation.client_id === clientId
       );
     }
-    
+
     setInstallations(filteredInstallations);
-    
+
     // Sélectionner la première installation filtrée ou réinitialiser
     if (filteredInstallations.length > 0) {
       // Si l'installation actuellement sélectionnée n'est plus dans la liste filtrée
-      if (!selectedInstallation || !filteredInstallations.find(i => i.id === selectedInstallation.id)) {
+      if (
+        !selectedInstallation ||
+        !filteredInstallations.find((i) => i.id === selectedInstallation.id)
+      ) {
         setSelectedInstallation(filteredInstallations[0]);
       }
     } else {

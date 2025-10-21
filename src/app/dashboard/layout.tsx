@@ -31,12 +31,11 @@ import { NavigationLoading } from "@/components/ui/navigation-loading";
 
 const menuItems = [
   { href: "/dashboard", label: "Tableau de Bord", icon: Home },
-  { href: "/dashboard/clients", label: "Clients", icon: Users },
+  { href: "/dashboard/clients", label: "Projets", icon: Users },
   { href: "/dashboard/building-info", label: "Bâtiments", icon: Building },
   { href: "/dashboard/electrical", label: "Installation", icon: Zap },
   { href: "/dashboard/audit", label: "Audit", icon: ClipboardList },
-  { href: "/dashboard/inventory", label: "Inventaire", icon: Package },
-  { href: "/dashboard/energy", label: "Énergie", icon: GaugeCircle },
+  { href: "/dashboard/equipements", label: "Équipements", icon: GaugeCircle },
   { href: "/dashboard/reports", label: "Rapports", icon: FileDown },
 ];
 

@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
-interface Client {
+interface Projet {
   id: number;
   contact_nom: string;
   contact_email: string;
@@ -68,7 +68,7 @@ interface Batiment {
   nb_travailleurs: number;
   surface_climatisee: number;
   surface_totale: number;
-  client?: {
+  projet?: {
     id: number;
     contact_nom: string;
     contact_email: string;
@@ -83,7 +83,7 @@ export default function BuildingInfoPage() {
   
   const [loading, setLoading] = useState(false);
   const [loadingBatiments, setLoadingBatiments] = useState(true);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [projets, setProjets] = useState<Projet[]>([]);
   const [batiments, setBatiments] = useState<Batiment[]>([]);
   const [showForm, setShowForm] = useState(!!batimentId);
   const [editingId, setEditingId] = useState<number | null>(batimentId ? parseInt(batimentId) : null);
@@ -114,17 +114,20 @@ export default function BuildingInfoPage() {
       try {
         console.log('🚀 Début du chargement des données...');
         
-        // Charger clients et bâtiments EN PARALLÈLE pour gagner du temps
-        const [clientsResponse, batimentsResponse] = await Promise.all([
+        // Charger projets et bâtiments EN PARALLÈLE pour gagner du temps
+        const [projetsResponse, batimentsResponse] = await Promise.all([
           apiHelpers.clients.getAll(),
           apiHelpers.batiments.getAll()
         ]);
         
         const loadTime = Date.now() - startTime;
         console.log(`⚡ Données chargées en ${loadTime}ms`);
+        console.log('🔍 Structure de la réponse projets:', projetsResponse.data);
         
-        // Traiter les clients (structure des routes protégées)
-        setClients(Array.isArray(clientsResponse.data) ? clientsResponse.data : []);
+        // Traiter les projets (structure des routes protégées)
+        const projetsData = projetsResponse.data?.data || [];
+        console.log('📊 Projets extraits:', projetsData);
+        setProjets(Array.isArray(projetsData) ? projetsData : []);
         
         // Traiter les bâtiments (structure des routes protégées)
         setBatiments(Array.isArray(batimentsResponse.data.data) ? batimentsResponse.data.data : batimentsResponse.data || []);
@@ -232,7 +235,59 @@ export default function BuildingInfoPage() {
     if (!formData.nom_batiment || !formData.adresse_site || !formData.commune) {
       toast({
         title: "Erreur",
-        description: "Veuillez remplir tous les champs obligatoires",
+        description: "Veuillez remplir tous les champs obligatoires (nom du bâtiment, adresse du site, commune)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validation nom du bâtiment
+    if (formData.nom_batiment.length < 2) {
+      toast({
+        title: "Erreur",
+        description: "Le nom du bâtiment doit contenir au moins 2 caractères",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validation nom du bâtiment (longueur minimale)
+    if (formData.nom_batiment.trim().length < 2) {
+      toast({
+        title: "Erreur",
+        description: "Le nom du bâtiment doit contenir au moins 2 caractères",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validation adresse du site (longueur minimale)
+    if (formData.adresse_site.trim().length < 5) {
+      toast({
+        title: "Erreur",
+        description: "L'adresse du site doit contenir au moins 5 caractères",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validation commune (seulement des lettres)
+    const communeRegex = /^[a-zA-ZÀ-ÿ\s\-']+$/;
+    if (!communeRegex.test(formData.commune)) {
+      toast({
+        title: "Erreur",
+        description: "La commune ne doit contenir que des lettres, espaces, tirets et apostrophes",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validation année de mise en service
+    const currentYear = new Date().getFullYear();
+    if (formData.annee_mise_service > 0 && (formData.annee_mise_service < 1900 || formData.annee_mise_service > currentYear + 5)) {
+      toast({
+        title: "Erreur",
+        description: `L'année de mise en service doit être entre 1900 et ${currentYear + 5}`,
         variant: "destructive",
       });
       return;
@@ -241,7 +296,7 @@ export default function BuildingInfoPage() {
     if (formData.client_id === 0) {
       toast({
         title: "Erreur",
-        description: "Veuillez sélectionner un client",
+        description: "Veuillez sélectionner un projet",
         variant: "destructive",
       });
       return;
@@ -458,39 +513,29 @@ export default function BuildingInfoPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="client">Client *</Label>
-                  <div className="flex space-x-2">
-                    <Select 
-                      value={formData.client_id > 0 ? formData.client_id.toString() : ""} 
-                      onValueChange={(value) => handleInputChange('client_id', parseInt(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un client" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clients.map((client) => (
-                          <SelectItem key={client.id} value={client.id.toString()}>
-                            {client.contact_nom} ({client.contact_email})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button 
-                      type="button"
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => router.push('/dashboard/clients')}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {clients.length === 0 && (
+                  <Label htmlFor="projet">Projet *</Label>
+                  <Select 
+                    value={formData.client_id > 0 ? formData.client_id.toString() : ""} 
+                    onValueChange={(value) => handleInputChange('client_id', parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un projet" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projets.map((projet) => (
+                        <SelectItem key={projet.id} value={projet.id.toString()}>
+                          {projet.contact_nom} ({projet.contact_email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {projets.length === 0 && (
                     <p className="text-sm text-muted-foreground">
-                      Aucun client disponible. <button 
+                      Aucun projet disponible. <button 
                         onClick={() => router.push('/dashboard/clients')}
                         className="text-primary hover:underline"
                       >
-                        Créer un client d'abord
+                        Créer un projet d'abord
                       </button>
                     </p>
                   )}
@@ -500,9 +545,12 @@ export default function BuildingInfoPage() {
                   <Label htmlFor="building-name">Nom du bâtiment *</Label>
                   <Input 
                     id="building-name" 
-                    placeholder="ex: Siège Social"
+                    placeholder="ex: Siège Social - Bâtiment A1"
                     value={formData.nom_batiment}
-                    onChange={(e) => handleInputChange('nom_batiment', e.target.value)}
+                    onChange={(e) => {
+                      handleInputChange('nom_batiment', e.target.value);
+                    }}
+                    maxLength={100}
                   />
                 </div>
                 
@@ -510,9 +558,12 @@ export default function BuildingInfoPage() {
                   <Label htmlFor="site-address">Adresse du site *</Label>
                   <Input 
                     id="site-address" 
-                    placeholder="ex: 123 Rue de la République"
+                    placeholder="ex: 123 Rue de la République, BP 456"
                     value={formData.adresse_site}
-                    onChange={(e) => handleInputChange('adresse_site', e.target.value)}
+                    onChange={(e) => {
+                      handleInputChange('adresse_site', e.target.value);
+                    }}
+                    maxLength={255}
                   />
                 </div>
                 
@@ -522,7 +573,12 @@ export default function BuildingInfoPage() {
                     id="commune" 
                     placeholder="ex: Cotonou"
                     value={formData.commune}
-                    onChange={(e) => handleInputChange('commune', e.target.value)}
+                    onChange={(e) => {
+                      // Permettre seulement les lettres, espaces, tirets et apostrophes
+                      const value = e.target.value.replace(/[^a-zA-ZÀ-ÿ\s\-']/g, '');
+                      handleInputChange('commune', value);
+                    }}
+                    maxLength={100}
                   />
                 </div>
                 
@@ -533,7 +589,24 @@ export default function BuildingInfoPage() {
                     type="number" 
                     placeholder="ex: 2010"
                     value={formData.annee_mise_service}
-                    onChange={(e) => handleInputChange('annee_mise_service', parseInt(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const year = parseInt(e.target.value) || 0;
+                      const currentYear = new Date().getFullYear();
+                      
+                      // Limiter entre 1900 et année actuelle + 5 ans
+                      if (year > 0 && (year < 1900 || year > currentYear + 5)) {
+                        toast({
+                          title: "Année invalide",
+                          description: `L'année doit être entre 1900 et ${currentYear + 5}`,
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
+                      handleInputChange('annee_mise_service', year);
+                    }}
+                    min="1900"
+                    max={new Date().getFullYear() + 5}
                   />
                 </div>
                 
@@ -543,7 +616,12 @@ export default function BuildingInfoPage() {
                     id="building-type" 
                     placeholder="ex: Bureaux administratifs"
                     value={formData.type_fonction}
-                    onChange={(e) => handleInputChange('type_fonction', e.target.value)}
+                    onChange={(e) => {
+                      // Permettre lettres, espaces et caractères spéciaux courants
+                      const value = e.target.value.replace(/[^a-zA-ZÀ-ÿ\s\-'().,/]/g, '');
+                      handleInputChange('type_fonction', value);
+                    }}
+                    maxLength={100}
                   />
                 </div>
               </div>
@@ -563,7 +641,20 @@ export default function BuildingInfoPage() {
                     type="number" 
                     placeholder="ex: 1500"
                     value={formData.surface_construite}
-                    onChange={(e) => handleInputChange('surface_construite', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      if (value < 0) {
+                        toast({
+                          title: "Valeur invalide",
+                          description: "La surface ne peut pas être négative",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      handleInputChange('surface_construite', value);
+                    }}
+                    min="0"
+                    step="0.1"
                   />
                 </div>
                 
@@ -573,7 +664,12 @@ export default function BuildingInfoPage() {
                     id="lease-type" 
                     placeholder="ex: Propriétaire"
                     value={formData.type_bail}
-                    onChange={(e) => handleInputChange('type_bail', e.target.value)}
+                    onChange={(e) => {
+                      // Permettre seulement les lettres, espaces, tirets et apostrophes
+                      const value = e.target.value.replace(/[^a-zA-ZÀ-ÿ\s\-']/g, '');
+                      handleInputChange('type_bail', value);
+                    }}
+                    maxLength={50}
                   />
                 </div>
                 
@@ -584,7 +680,20 @@ export default function BuildingInfoPage() {
                     type="number" 
                     placeholder="ex: 5"
                     value={formData.nombre_etages}
-                    onChange={(e) => handleInputChange('nombre_etages', parseInt(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 0;
+                      if (value < 0 || value > 200) {
+                        toast({
+                          title: "Valeur invalide",
+                          description: "Le nombre d'étages doit être entre 0 et 200",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      handleInputChange('nombre_etages', value);
+                    }}
+                    min="0"
+                    max="200"
                   />
                 </div>
                 
@@ -594,7 +703,12 @@ export default function BuildingInfoPage() {
                     id="building-shape" 
                     placeholder="ex: Rectangulaire"
                     value={formData.forme_batiment}
-                    onChange={(e) => handleInputChange('forme_batiment', e.target.value)}
+                    onChange={(e) => {
+                      // Permettre seulement les lettres, espaces, tirets et apostrophes
+                      const value = e.target.value.replace(/[^a-zA-ZÀ-ÿ\s\-']/g, '');
+                      handleInputChange('forme_batiment', value);
+                    }}
+                    maxLength={50}
                   />
                 </div>
                 
@@ -628,7 +742,20 @@ export default function BuildingInfoPage() {
                     type="number" 
                     placeholder="ex: 80"
                     value={formData.nb_travailleurs}
-                    onChange={(e) => handleInputChange('nb_travailleurs', parseInt(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 0;
+                      if (value < 0 || value > 10000) {
+                        toast({
+                          title: "Valeur invalide",
+                          description: "Le nombre de travailleurs doit être entre 0 et 10000",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      handleInputChange('nb_travailleurs', value);
+                    }}
+                    min="0"
+                    max="10000"
                   />
                 </div>
                 
@@ -768,10 +895,10 @@ export default function BuildingInfoPage() {
                           <span>{batiment.annee_mise_service}</span>
                         </div>
                       </div>
-                      {batiment.client && (
+                      {batiment.projet && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Client:</span>
-                          <span className="text-right">{batiment.client.contact_nom}</span>
+                          <span className="text-muted-foreground">Projet:</span>
+                          <span className="text-right">{batiment.projet.contact_nom}</span>
                         </div>
                       )}
                     </div>

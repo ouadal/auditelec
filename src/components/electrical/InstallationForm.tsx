@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Camera, Upload, X, Save } from 'lucide-react';
-import { InstallationForm as InstallationFormType } from '@/types/electrical';
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Camera, Upload, X, Save } from "lucide-react";
+import { InstallationForm as InstallationFormType } from "@/types/electrical";
 
 interface InstallationFormProps {
   initialData?: Partial<InstallationFormType>;
@@ -24,11 +24,11 @@ interface InstallationFormProps {
   isEditing?: boolean;
 }
 
-export function InstallationForm({ 
-  initialData, 
-  onSubmit, 
-  onCancel, 
-  isEditing = false 
+export function InstallationForm({
+  initialData,
+  onSubmit,
+  onCancel,
+  isEditing = false,
 }: InstallationFormProps) {
   const [formData, setFormData] = useState<InstallationFormType>({
     client_id: initialData?.client_id || 1,
@@ -44,7 +44,8 @@ export function InstallationForm({
     terre_dans_pc: initialData?.terre_dans_pc || false,
     presence_differentiel: initialData?.presence_differentiel || false,
     commentaire_terre: initialData?.commentaire_terre || "",
-    date_installation: initialData?.date_installation || new Date().toISOString().split("T")[0],
+    date_installation:
+      initialData?.date_installation || new Date().toISOString().split("T")[0],
     photo_coffret: initialData?.photo_coffret || [],
     photo_cable_electrique: initialData?.photo_cable_electrique || [],
     photo_type_cable: initialData?.photo_type_cable || [],
@@ -52,12 +53,14 @@ export function InstallationForm({
     photo_terre_pc: initialData?.photo_terre_pc || [],
   });
 
-  const [photoPreview, setPhotoPreview] = useState<{ [key: string]: string[] }>({});
+  const [photoPreview, setPhotoPreview] = useState<{ [key: string]: string[] }>(
+    {}
+  );
 
   const handleInputChange = (field: keyof InstallationFormType, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -84,7 +87,7 @@ export function InstallationForm({
       reader.readAsDataURL(file);
     });
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [fieldName]: [
         ...(prev[fieldName as keyof InstallationFormType] as File[]),
@@ -99,9 +102,11 @@ export function InstallationForm({
       [fieldName]: prev[fieldName]?.filter((_, i) => i !== index) || [],
     }));
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [fieldName]: (prev[fieldName as keyof InstallationFormType] as File[]).filter((_, i) => i !== index),
+      [fieldName]: (
+        prev[fieldName as keyof InstallationFormType] as File[]
+      ).filter((_, i) => i !== index),
     }));
   };
 
@@ -110,14 +115,14 @@ export function InstallationForm({
     onSubmit(formData);
   };
 
-  const PhotoUploadSection = ({ 
-    fieldName, 
-    label, 
-    description 
-  }: { 
-    fieldName: string; 
-    label: string; 
-    description?: string; 
+  const PhotoUploadSection = ({
+    fieldName,
+    label,
+    description,
+  }: {
+    fieldName: string;
+    label: string;
+    description?: string;
   }) => (
     <div className="space-y-3">
       <div>
@@ -126,7 +131,7 @@ export function InstallationForm({
           <p className="text-xs text-gray-500 mt-1">{description}</p>
         )}
       </div>
-      
+
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
         <input
           type="file"
@@ -141,7 +146,9 @@ export function InstallationForm({
           className="flex flex-col items-center justify-center cursor-pointer"
         >
           <Upload className="h-8 w-8 text-gray-400 mb-2" />
-          <span className="text-sm text-gray-600">Cliquez pour ajouter des photos</span>
+          <span className="text-sm text-gray-600">
+            Cliquez pour ajouter des photos
+          </span>
           <span className="text-xs text-gray-400">PNG, JPG jusqu'à 10MB</span>
         </label>
       </div>
@@ -182,7 +189,9 @@ export function InstallationForm({
               <Label htmlFor="type_compteur">Type de compteur</Label>
               <Select
                 value={formData.type_compteur}
-                onValueChange={(value) => handleInputChange('type_compteur', value)}
+                onValueChange={(value) =>
+                  handleInputChange("type_compteur", value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -199,7 +208,9 @@ export function InstallationForm({
               <Label htmlFor="configuration_compteur">Configuration</Label>
               <Select
                 value={formData.configuration_compteur}
-                onValueChange={(value) => handleInputChange('configuration_compteur', value)}
+                onValueChange={(value) =>
+                  handleInputChange("configuration_compteur", value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -216,7 +227,9 @@ export function InstallationForm({
               <Input
                 type="number"
                 value={formData.amperage}
-                onChange={(e) => handleInputChange('amperage', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleInputChange("amperage", parseInt(e.target.value) || 0)
+                }
                 min="1"
                 max="1000"
               />
@@ -228,7 +241,9 @@ export function InstallationForm({
             <Input
               type="date"
               value={formData.date_installation}
-              onChange={(e) => handleInputChange('date_installation', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("date_installation", e.target.value)
+              }
             />
           </div>
         </CardContent>
@@ -244,7 +259,9 @@ export function InstallationForm({
             <Label htmlFor="composantes_coffret">Composantes du coffret</Label>
             <Textarea
               value={formData.composantes_coffret}
-              onChange={(e) => handleInputChange('composantes_coffret', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("composantes_coffret", e.target.value)
+              }
               placeholder="Décrivez les composantes du coffret électrique..."
               rows={3}
             />
@@ -268,16 +285,20 @@ export function InstallationForm({
             <Label htmlFor="cable_type">Type de câble</Label>
             <Input
               value={formData.cable_type}
-              onChange={(e) => handleInputChange('cable_type', e.target.value)}
+              onChange={(e) => handleInputChange("cable_type", e.target.value)}
               placeholder="Ex: Cuivre 2.5mm², Aluminium 10mm²..."
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="commentaire_cable">Commentaire sur le câblage</Label>
+            <Label htmlFor="commentaire_cable">
+              Commentaire sur le câblage
+            </Label>
             <Textarea
               value={formData.commentaire_cable}
-              onChange={(e) => handleInputChange('commentaire_cable', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("commentaire_cable", e.target.value)
+              }
               placeholder="Observations sur le câblage..."
               rows={2}
             />
@@ -309,7 +330,9 @@ export function InstallationForm({
                 <Checkbox
                   id="protection_terre"
                   checked={formData.protection_terre}
-                  onCheckedChange={(checked) => handleInputChange('protection_terre', checked)}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("protection_terre", checked)
+                  }
                 />
                 <Label htmlFor="protection_terre">Protection terre</Label>
               </div>
@@ -318,16 +341,22 @@ export function InstallationForm({
                 <Checkbox
                   id="presence_differentiel"
                   checked={formData.presence_differentiel}
-                  onCheckedChange={(checked) => handleInputChange('presence_differentiel', checked)}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("presence_differentiel", checked)
+                  }
                 />
-                <Label htmlFor="presence_differentiel">Présence différentiel</Label>
+                <Label htmlFor="presence_differentiel">
+                  Présence différentiel
+                </Label>
               </div>
 
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="barette_de_coupure"
                   checked={formData.barette_de_coupure}
-                  onCheckedChange={(checked) => handleInputChange('barette_de_coupure', checked)}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("barette_de_coupure", checked)
+                  }
                 />
                 <Label htmlFor="barette_de_coupure">Barette de coupure</Label>
               </div>
@@ -336,7 +365,9 @@ export function InstallationForm({
                 <Checkbox
                   id="terre_dans_pc"
                   checked={formData.terre_dans_pc}
-                  onCheckedChange={(checked) => handleInputChange('terre_dans_pc', checked)}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("terre_dans_pc", checked)
+                  }
                 />
                 <Label htmlFor="terre_dans_pc">Terre dans PC</Label>
               </div>
@@ -348,17 +379,26 @@ export function InstallationForm({
                 <Input
                   type="number"
                   value={formData.valeur_terre}
-                  onChange={(e) => handleInputChange('valeur_terre', parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "valeur_terre",
+                      parseFloat(e.target.value) || 0
+                    )
+                  }
                   min="0"
                   step="0.1"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="commentaire_terre">Commentaire sur la terre</Label>
+                <Label htmlFor="commentaire_terre">
+                  Commentaire sur la terre
+                </Label>
                 <Textarea
                   value={formData.commentaire_terre}
-                  onChange={(e) => handleInputChange('commentaire_terre', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("commentaire_terre", e.target.value)
+                  }
                   placeholder="Observations sur la protection terre..."
                   rows={3}
                 />
@@ -391,7 +431,7 @@ export function InstallationForm({
         </Button>
         <Button type="submit" className="flex items-center gap-2">
           <Save className="h-4 w-4" />
-          {isEditing ? 'Modifier' : 'Créer'} l'installation
+          {isEditing ? "Modifier" : "Créer"} l'installation
         </Button>
       </div>
     </form>
