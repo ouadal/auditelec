@@ -115,14 +115,27 @@ export default function AuditPage() {
 
             let piecesData = [];
             if (piecesResponse.data.success && piecesResponse.data.data) {
-              piecesData = piecesResponse.data.data.pieces || [];
+              // L'API retourne directement un tableau dans data
+              piecesData = Array.isArray(piecesResponse.data.data) 
+                ? piecesResponse.data.data 
+                : piecesResponse.data.data.pieces || [];
             } else if (Array.isArray(piecesResponse.data)) {
               piecesData = piecesResponse.data;
             } else if (piecesResponse.data.pieces) {
               piecesData = piecesResponse.data.pieces;
             }
 
-            setRooms(piecesData);
+            // Transformer les données pour correspondre à l'interface Room
+            const transformedRooms = piecesData.map((piece: any) => ({
+              id: piece.id,
+              // support multiple response shapes
+              name: piece.nom_piece || piece.name || piece.nom || "",
+              level: piece.niveau || piece.level || "RDC",
+              manager: piece.responsable || piece.manager || "",
+              batiment_id: piece.batiment_id || piece.batiment_id || (piece.batiment && piece.batiment.id) || null,
+            }));
+
+            setRooms(transformedRooms);
             console.log(
               `✅ ${piecesData.length} pièces chargées automatiquement`
             );
@@ -277,7 +290,16 @@ export default function AuditPage() {
           console.log("selectedBatiment:", selectedBatiment);
           console.log("room original:", room);
 
-          await apiHelpers.pieces.create(roomData);
+          const response = await apiHelpers.pieces.create(roomData);
+          // Extract created resource (API may return different shapes)
+          const created = response?.data?.data || response?.data || null;
+          const createdId = created?.id || created?.data?.id || response?.data?.id || null;
+
+          // Replace placeholder id with real id in local state if available
+          if (createdId) {
+            setRooms((prev) => prev.map((r) => (r.id === room.id ? { ...r, id: createdId } : r)));
+          }
+
           createdCount++;
         } catch (error: any) {
           console.error("Erreur création pièce:", error);
@@ -333,12 +355,30 @@ export default function AuditPage() {
         const response = await apiHelpers.pieces.getByBatiment(
           selectedBatiment.id.toString()
         );
-        let piecesData = [];
-        if (response.data.success && response.data.data) {
-          piecesData = response.data.data.pieces || [];
-        } else if (Array.isArray(response.data)) {
-          piecesData = response.data;
+
+        const resp = response?.data;
+        let piecesData: any[] = [];
+
+        if (resp) {
+          // Common API shapes handled:
+          // { success: true, data: [...] }
+          // { success: true, data: { pieces: [...] } }
+          // [ ... ]
+          // { pieces: [...] }
+          if (resp.success && resp.data) {
+            piecesData = Array.isArray(resp.data) ? resp.data : resp.data.pieces || [];
+          } else if (Array.isArray(resp)) {
+            piecesData = resp;
+          } else if (resp.pieces) {
+            piecesData = resp.pieces;
+          } else if (resp.data) {
+            piecesData = Array.isArray(resp.data) ? resp.data : [];
+          } else {
+            // fallback: try to use response directly as array
+            piecesData = Array.isArray(response) ? response : [];
+          }
         }
+
         setRooms(piecesData);
       } catch (reloadError) {
         console.error("Erreur rechargement:", reloadError);
@@ -415,9 +455,10 @@ export default function AuditPage() {
       if (id < 0) {
         // Nouvelle pièce - créer
         const response = await apiHelpers.pieces.create(roomData);
-        // Mettre à jour l'ID local avec l'ID de la base de données
-        const newId = response.data?.id || Math.floor(Math.random() * 1000000);
-        setRooms(rooms.map((r) => (r.id === id ? { ...r, id: newId } : r)));
+        // Mettre à jour l'ID local avec l'ID de la base de données (gérer différentes formes de réponse)
+        const created = response?.data?.data || response?.data || null;
+        const newId = created?.id || response?.data?.id || Math.floor(Math.random() * 1000000);
+        setRooms((prev) => prev.map((r) => (r.id === id ? { ...r, id: newId } : r)));
 
         toast({
           title: "Succès",
@@ -512,25 +553,31 @@ export default function AuditPage() {
       // Handle response from batiment pieces API or regular pieces API
       let piecesData = [];
       if (response.data.success && response.data.data) {
-        // Structure avec success
-        piecesData = response.data.data.pieces || [];
-        if (response.data.data.batiment) {
-          setSelectedBatiment(response.data.data.batiment);
-        }
-
-        // Plus besoin de récupérer un audit
+        // L'API retourne directement un tableau dans data
+        piecesData = Array.isArray(response.data.data) 
+          ? response.data.data 
+          : response.data.data.pieces || [];
         console.log("✅ Pièces chargées pour le bâtiment");
       } else if (Array.isArray(response.data)) {
         // Structure directe (array)
         piecesData = response.data;
-        console.log("⚠️ Réponse en format array, pas d'audit disponible");
+        console.log("⚠️ Réponse en format array");
       } else if (response.data.pieces) {
         // Structure avec pieces
         piecesData = response.data.pieces;
-        console.log("⚠️ Réponse avec pieces, pas d'audit disponible");
+        console.log("⚠️ Réponse avec pieces");
       }
 
-      setRooms(piecesData);
+      // Transformer les données pour correspondre à l'interface Room
+      const transformedRooms = piecesData.map((piece: any) => ({
+        id: piece.id,
+        name: piece.nom_piece || piece.name || piece.nom || "",
+        level: piece.niveau || piece.level || "RDC",
+        manager: piece.responsable || piece.manager || "",
+        batiment_id: piece.batiment_id || (piece.batiment && piece.batiment.id) || null,
+      }));
+
+      setRooms(transformedRooms);
       setBatimentId(batimentId);
 
       console.log("🎯 Pièces définies dans l'état:", piecesData);

@@ -48,7 +48,9 @@ export default function ElectricalPage() {
       const response = await installationService.getAll();
       console.log("Installations chargées:", response);
 
-      const installations = response.data || [];
+      // Supporte différentes formes de réponse: tableau direct ou { success, data }
+      const data = (response && (response as any).data) ?? response;
+      const installations = Array.isArray(data) ? data : [];
       setAllInstallations(installations);
 
       // Filtrer par client si un client est sélectionné
@@ -125,9 +127,22 @@ export default function ElectricalPage() {
       await loadInstallations();
     } catch (error: any) {
       console.error("Erreur lors de la sauvegarde:", error);
+      const backendMsg = error?.response?.data?.message;
+      const validationErrors = error?.response?.data?.errors;
+      let description = "Impossible de sauvegarder l'installation";
+      if (backendMsg) {
+        description = backendMsg;
+      } else if (validationErrors) {
+        try {
+          const messages = Object.values(validationErrors)
+            .flat()
+            .filter((m: any) => typeof m === 'string');
+          if (messages.length) description = messages.join(" | ");
+        } catch {}
+      }
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder l'installation",
+        description,
         variant: "destructive",
       });
     } finally {
@@ -211,7 +226,7 @@ export default function ElectricalPage() {
                 </p>
               </div>
             </div>
-            <Button onClick={() => setShowInstallationForm(true)}>
+            <Button onClick={() => setShowInstallationForm(true)} disabled={!selectedClientId}>
               <Plus className="mr-2 h-4 w-4" />
               Nouvelle Installation
             </Button>
@@ -302,7 +317,7 @@ export default function ElectricalPage() {
                     photo_barette_coupure: [],
                     photo_terre_pc: [],
                   }
-                : undefined
+                : { client_id: selectedClientId ?? 0 }
             }
             onSubmit={handleInstallationSubmit}
             onCancel={handleInstallationCancel}

@@ -85,7 +85,18 @@ interface Equipement {
 interface Piece {
   id: number;
   nom_piece: string;
+  level: string;
+  manager: string;
   batiment?: { nom_batiment: string };
+  equipements?: Array<{
+    id: number;
+    nom_equipement: string;
+    type_equipement?: {
+      id: number;
+      nom: string;
+      icone?: string;
+    };
+  }>;
 }
 
 interface TypeEquipement {
@@ -158,15 +169,32 @@ export default function EquipementsPage() {
   // Charger les données
   const loadData = async () => {
     try {
+      console.log('Début du chargement des données...');
+      
       const [equipementsRes, piecesRes, typesRes] = await Promise.all([
         apiHelpers.equipements.getAll(),
         apiHelpers.pieces.getAll(),
         apiHelpers.typesEquipement.getAll(),
       ]);
 
+      console.log('Résultat équipements:', equipementsRes);
+      console.log('Résultat pièces:', piecesRes);
+      console.log('Résultat types:', typesRes);
+
+      // Debug: vérifier la structure exacte des données
+      console.log('Structure equipementsRes.data:', equipementsRes.data);
+      console.log('Type de equipementsRes.data:', typeof equipementsRes.data);
+      console.log('Est-ce un tableau?', Array.isArray(equipementsRes.data));
+      console.log('Structure typesRes.data:', typesRes.data);
+
+      // Corriger l'accès aux données basé sur la structure réelle de l'API
       setEquipements(equipementsRes.data?.data || []);
-      setPieces(piecesRes.data?.data || []);
+      setPieces(piecesRes.data || []);
       setTypesEquipement(typesRes.data?.data || []);
+      
+      // Debug: vérifier les données des pièces
+      console.log('Pièces chargées:', piecesRes.data);
+      console.log('Structure des pièces:', piecesRes.data?.[0]);
     } catch (error) {
       toast({
         title: "Erreur",
@@ -179,6 +207,19 @@ export default function EquipementsPage() {
   };
 
   useEffect(() => {
+    // Debug: vérifier si l'utilisateur est authentifié
+    const token = localStorage.getItem('auth_token');
+    const user = localStorage.getItem('user');
+    console.log('Token présent:', !!token);
+    console.log('Utilisateur présent:', !!user);
+    
+    if (token) {
+      console.log('Token:', token.substring(0, 20) + '...');
+    }
+    if (user) {
+      console.log('Utilisateur:', JSON.parse(user));
+    }
+    
     loadData();
   }, []);
 
@@ -485,17 +526,39 @@ export default function EquipementsPage() {
                     <SelectValue placeholder="Sélectionner une pièce" />
                   </SelectTrigger>
                   <SelectContent>
-                    {pieces.map((piece) => (
-                      <SelectItem key={piece.id} value={piece.id.toString()}>
-                        {piece.nom_piece}{" "}
-                        {piece.batiment && `- ${piece.batiment.nom_batiment}`}
-                      </SelectItem>
-                    ))}
+                    {pieces.map((piece) => {
+                      console.log('Piece dans le selecteur - structure complète:', piece);
+                      
+                      // Gérer différentes structures de données pour les noms de pièces
+                      const nomPiece = piece.name || 'Pièce sans nom';
+                      
+                      // Gérer différentes structures de données pour les bâtiments
+                      let nomBatiment = '';
+                      
+                      if (piece.batiment?.nom_batiment) {
+                        nomBatiment = ` - ${piece.batiment.nom_batiment}`;
+                      } else if (piece.nom_batiment) {
+                        // Si le nom du bâtiment est directement sur l'objet pièce
+                        nomBatiment = ` - ${piece.nom_batiment}`;
+                      } else if (piece.batiment_nom) {
+                        // Autre format possible
+                        nomBatiment = ` - ${piece.batiment_nom}`;
+                      }
+                      
+                      const texteAffiche = `${nomPiece}${nomBatiment}`;
+                      console.log('Texte à afficher:', texteAffiche);
+                      
+                      return (
+                        <SelectItem key={piece.id} value={piece.id.toString()}>
+                          {texteAffiche}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Type */}
+              {/* Type d'équipement */}
               <div>
                 <Label>Type d'équipement *</Label>
                 <Select
@@ -576,6 +639,44 @@ export default function EquipementsPage() {
                   }
                 />
               </div>
+
+              {/* Champ supplémentaire pour la tension quand le type est courant */}
+              {formData.type_valeur === "courant" && (
+                <div>
+                  <Label>Tension (V)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.tension || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tension: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    placeholder="230"
+                  />
+                </div>
+              )}
+
+              {/* Champ supplémentaire pour le courant quand le type est tension */}
+              {formData.type_valeur === "tension" && (
+                <div>
+                  <Label>Intensité (A)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.courant || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        courant: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    placeholder="16"
+                  />
+                </div>
+              )}
 
               {/* Heures d'utilisation */}
               <div>
@@ -857,12 +958,21 @@ export default function EquipementsPage() {
                 <div className="text-sm space-y-1">
                   <div>Nombre: {equipement.nombre}</div>
                   <div>
-                    Valeur: {equipement.valeur_mesuree}{" "}
-                    {equipement.type_valeur === "puissance"
-                      ? "W"
-                      : equipement.type_valeur === "courant"
-                      ? "A"
-                      : "V"}
+                    {equipement.type_valeur === "puissance" ? (
+                      <div>Puissance: {equipement.valeur_mesuree} W</div>
+                    ) : equipement.type_valeur === "courant" ? (
+                      <>
+                        <div>Courant: {equipement.valeur_mesuree} A</div>
+                        {equipement.tension && <div>Tension: {equipement.tension} V</div>}
+                      </>
+                    ) : equipement.type_valeur === "tension" ? (
+                      <>
+                        <div>Tension: {equipement.valeur_mesuree} V</div>
+                        {equipement.courant && <div>Courant: {equipement.courant} A</div>}
+                      </>
+                    ) : (
+                      <div>Énergie: {equipement.valeur_mesuree} kWh/an</div>
+                    )}
                   </div>
                   <div>Heures/jour: {equipement.heures_utilisation_jour}h</div>
 

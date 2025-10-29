@@ -13,7 +13,10 @@ export interface TypeEquipement {
 
 export interface Piece {
   id: number;
-  nom_piece: string;
+  name: string;
+  level?: string;
+  manager?: string;
+  batiment_id: number;
   batiment?: {
     id: number;
     nom_batiment: string;

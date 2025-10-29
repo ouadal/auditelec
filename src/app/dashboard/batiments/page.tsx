@@ -24,7 +24,7 @@ import {
   Eye,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiHelpers } from "../../../../services/apiHelpers";
+import apiHelpers from "../../../../services/apiHelpers";
 
 interface BatimentAvecEnergie {
   id: number;

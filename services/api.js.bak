@@ -1,0 +1,341 @@
+import axios from 'axios';
+
+// Création de l'instance API
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api',
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+  },
+});
+
+// État du CSRF token
+const csrfState = {
+  initialized: false
+};
+
+async function initializeCsrf() {
+  if (!csrfState.initialized) {
+    try {
+      await axios.get('http://127.0.0.1:8000/sanctum/csrf-cookie', {
+        withCredentials: true
+      });
+      csrfState.initialized = true;
+    } catch (error) {
+      console.warn('Impossible d\'initialiser le CSRF token:', error);
+    }
+  }
+}
+
+// Intercepteur pour les requêtes
+api.interceptors.request.use(async function(config) {
+  try {
+    await initializeCsrf();
+    
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    console.log('Requête sortante:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers,
+      data: config.data
+    });
+    
+    return config;
+  } catch (error) {
+    console.error('Erreur dans la configuration de la requête:', error);
+    return Promise.reject(error);
+  }
+}, function(error) {
+  console.error('Erreur dans l\'intercepteur de requête:', error);
+  return Promise.reject(error);
+});
+
+// Intercepteur pour les réponses
+api.interceptors.response.use(
+  function(response) {
+    if (response.data === undefined || response.data === null) {
+      return Promise.reject(new Error('La réponse ne contient pas de données'));
+    }
+    return response;
+  },
+  function(error) {
+    console.error('Erreur dans la réponse:', error);
+    const errorDetails = {
+      status: error.response?.status || 'unknown',
+      statusText: error.response?.statusText || 'Erreur inconnue',
+      message: error.response?.data?.message || error.message || 'Une erreur est survenue',
+      url: error.config?.url || 'URL inconnue',
+      method: error.config?.method || 'Méthode inconnue',
+      data: error.config?.data,
+      requestHeaders: error.config?.headers || {},
+      responseHeaders: error.response?.headers || {},
+      timestamp: new Date().toISOString()
+    };
+
+    error.details = errorDetails;
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+
+let csrfInitialized = false;
+
+async function initializeCsrf() {
+  if (!csrfInitialized) {
+    try {
+      await axios.get('http://127.0.0.1:8000/sanctum/csrf-cookie', {
+        withCredentials: true
+      });
+      csrfInitialized = true;
+    } catch (error) {
+      console.warn('Impossible d\'initialiser le CSRF token:', error);
+    }
+  }
+}
+
+// Intercepteur pour les requêtes
+api.interceptors.request.use(async function(config) {
+  try {
+    await initializeCsrf();
+    
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    console.log('Requête sortante:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers,
+      data: config.data
+    });
+    
+    return config;
+  } catch (error) {
+    console.error('Erreur dans la configuration de la requête:', error);
+    return Promise.reject(error);
+  }
+}, function(error) {
+  console.error('Erreur dans l\'intercepteur de requête:', error);
+  return Promise.reject(error);
+});
+
+// Intercepteur pour les réponses
+api.interceptors.response.use(
+  function(response) {
+    if (response.data === undefined || response.data === null) {
+      return Promise.reject(new Error('La réponse ne contient pas de données'));
+    }
+    return response;
+  },
+  function(error) {
+    console.error('Erreur dans la réponse:', error);
+    const errorDetails = {
+      status: error.response?.status || 'unknown',
+      statusText: error.response?.statusText || 'Erreur inconnue',
+      message: error.response?.data?.message || error.message || 'Une erreur est survenue',
+      url: error.config?.url || 'URL inconnue',
+      method: error.config?.method || 'Méthode inconnue',
+      data: error.config?.data,
+      requestHeaders: error.config?.headers || {},
+      responseHeaders: error.response?.headers || {},
+      timestamp: new Date().toISOString()
+    };
+
+    error.details = errorDetails;
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+
+let csrfInitialized = false;
+
+const initializeCsrf = async () => {
+  if (!csrfInitialized) {
+    try {
+      await axios.get('http://127.0.0.1:8000/sanctum/csrf-cookie', {
+        withCredentials: true
+      });
+      csrfInitialized = true;
+    } catch (error) {
+      console.warn('Impossible d\'initialiser le CSRF token:', error);
+    }
+  }
+};
+
+api.interceptors.request.use(
+  async (config) => {
+    try {
+      await initializeCsrf();
+      
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      console.log('Requête sortante:', {
+        url: config.url,
+        method: config.method,
+        headers: config.headers,
+        data: config.data
+      });
+      
+      return config;
+    } catch (error) {
+      console.error('Erreur dans la configuration de la requête:', error);
+      return Promise.reject(error);
+    }
+  },
+  (error) => {
+    console.error('Erreur dans l\'intercepteur de requête:', error);
+    return Promise.reject(error);
+  }
+);
+  async (config) => {
+    // Initialiser le CSRF token pour les requêtes POST/PUT/DELETE
+    if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
+      await initializeCsrf();
+    }
+    
+    // Ajouter le token d'authentification si disponible
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Ajouter l'ID de l'utilisateur connecté
+    const user = localStorage.getItem('user');
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        if (userData.id) {
+          config.headers['X-User-Id'] = userData.id;
+        }
+      } catch (error) {
+        console.warn('Erreur lors de la récupération des données utilisateur:', error);
+      }
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Intercepteur pour les réponses
+api.interceptors.response.use(
+  (response) => {
+    // Vérifier si la réponse contient des données
+    if (response.data === undefined || response.data === null) {
+      throw new Error('La réponse ne contient pas de données');
+    }
+    return response;
+  },
+  (error) => {
+    // Capturer le maximum d'informations sur l'erreur
+    console.log('Error intercepted:', {
+      error,
+      response: error.response,
+      request: error.request,
+      config: error.config
+    });
+
+    // Construire un objet d'erreur détaillé
+    const errorDetails = {
+      status: error.response?.status || 'unknown',
+      statusText: error.response?.statusText || 'No status text',
+      message: error.response?.data?.message || error.message || 'Une erreur inconnue est survenue',
+      url: error.config?.url || 'URL non disponible',
+      method: error.config?.method || 'Méthode non disponible',
+      data: error.config?.data || 'Pas de données',
+      requestHeaders: error.config?.headers || {},
+      responseHeaders: error.response?.headers || {},
+      timestamp: new Date().toISOString(),
+      stack: error.stack || 'Pas de stack trace disponible',
+    };
+
+    // Gestion spécifique selon le type d'erreur
+    if (error.response) {
+      // La requête a été faite et le serveur a répondu avec un code d'erreur
+      switch (error.response.status) {
+        case 401:
+          // Token expiré ou invalide
+          localStorage.removeItem('auth_token');
+          errorDetails.type = 'Unauthorized';
+          errorDetails.message = 'Session expirée. Veuillez vous reconnecter.';
+          errorDetails.action = 'Authentication token removed';
+          break;
+        case 403:
+          errorDetails.type = 'Forbidden';
+          errorDetails.message = 'Accès non autorisé à cette ressource';
+          errorDetails.action = 'Access denied';
+          break;
+        case 404:
+          errorDetails.type = 'Not Found';
+          errorDetails.message = 'La ressource demandée n\'existe pas';
+          errorDetails.action = 'Resource not found';
+          break;
+        case 422:
+          errorDetails.type = 'Validation Error';
+          errorDetails.message = 'Les données fournies sont invalides';
+          errorDetails.validationErrors = error.response.data?.errors;
+          break;
+        case 500:
+          errorDetails.type = 'Server Error';
+          errorDetails.message = 'Une erreur est survenue sur le serveur';
+          errorDetails.action = 'Internal server error';
+          break;
+        default:
+          errorDetails.type = 'Response Error';
+          errorDetails.message = 'Une erreur inattendue est survenue';
+          errorDetails.action = 'Unexpected response status';
+      }
+    } else if (error.request) {
+      // La requête a été faite mais aucune réponse n'a été reçue
+      errorDetails.type = 'Network Error';
+      errorDetails.message = 'Impossible de se connecter au serveur';
+      errorDetails.action = 'No response received';
+    } else {
+      // Une erreur s'est produite lors de la configuration de la requête
+      errorDetails.type = 'Request Error';
+      errorDetails.message = 'Erreur lors de la préparation de la requête';
+      errorDetails.action = 'Request setup failed';
+    }
+
+    // Améliorer le message d'erreur avec plus de contexte
+    let userMessage = errorDetails.message;
+    if (errorDetails.type === 'Validation Error' && errorDetails.validationErrors) {
+      userMessage = Object.entries(errorDetails.validationErrors)
+        .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
+        .join('\n');
+    }
+
+    // Log détaillé pour le debugging
+    console.error('API Error:', {
+      ...errorDetails,
+      userMessage
+    });
+
+    // Si c'est une erreur de validation, inclure les détails dans l'erreur rejetée
+    if (errorDetails.validationErrors) {
+      error.validationErrors = errorDetails.validationErrors;
+    }
+
+    // Enrichir l'erreur avec des informations plus utiles pour l'utilisateur
+    error.details = errorDetails;
+    error.userMessage = userMessage;
+    error.technicalDetails = `${errorDetails.type} (${errorDetails.status || 'Unknown'}): ${errorDetails.action}`;
+    
+    return Promise.reject(error);
+  }
+);
+
+export default api;

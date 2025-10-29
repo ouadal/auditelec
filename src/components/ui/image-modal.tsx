@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { resolvePhotoUrl } from '@/lib/photoUrl';
 
 interface ImageModalProps {
   images: string[];
@@ -27,7 +28,7 @@ export function ImageModal({ images, currentIndex, isOpen, onClose, title }: Ima
 
   const downloadImage = () => {
     const link = document.createElement('a');
-    link.href = `http://127.0.0.1:8000/storage/${images[currentImageIndex]}`;
+    link.href = resolvePhotoUrl(images[currentImageIndex]);
     link.download = `photo-${currentImageIndex + 1}.jpg`;
     document.body.appendChild(link);
     link.click();
@@ -90,11 +91,11 @@ export function ImageModal({ images, currentIndex, isOpen, onClose, title }: Ima
         {/* Image */}
         <div className="max-w-full max-h-full flex items-center justify-center">
           <img
-            src={`http://127.0.0.1:8000/storage/${images[currentImageIndex]}`}
+            src={resolvePhotoUrl(images[currentImageIndex])}
             alt={`Photo ${currentImageIndex + 1}`}
             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
             onError={(e) => {
-              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzQgMTMwTDE4NiAxNDJMMjE0IDExNEwyNDYgMTQ2TDI3NCAxMThMMzA2IDE1MEwzMzQgMTIyTDM2NiAxNTRMMzk0IDEyNlYyNzRIMzRWMjc0SDZWMTI2TDM4IDE1NEw3MCAxMjJMMTAyIDE1MEwxMzQgMTE4TDE2NiAxNDZMMTc0IDEzOFYxMzBaIiBmaWxsPSIjRDVEOURGIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjc3NDhGIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiPkltYWdlIG5vbiBkaXNwb25pYmxlPC90ZXh0Pgo8L3N2Zz4K';
+              e.currentTarget.src = '/images/fallback/image-not-found.png';
             }}
           />
         </div>
@@ -113,7 +114,7 @@ export function ImageModal({ images, currentIndex, isOpen, onClose, title }: Ima
                 }`}
               >
                 <img
-                  src={`http://127.0.0.1:8000/storage/${image}`}
+                  src={resolvePhotoUrl(image)}
                   alt={`Miniature ${index + 1}`}
                   className="w-full h-full object-cover"
                 />

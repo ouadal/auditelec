@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Save, Trash2 } from 'lucide-react';
+import { Plus, Save, Trash2, Camera } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useToast } from '@/hooks/use-toast';
 import { installationService } from '../../../services/electricalApi';
@@ -25,7 +26,29 @@ export function InstallationSection({ clientId = 1 }: InstallationSectionProps) 
   const [showAddForm, setShowAddForm] = useState(false);
   const { toast } = useToast();
 
-  const [newInstallation, setNewInstallation] = useState({
+  type NewInstallation = {
+    client_id: number;
+    type_compteur: 'BT' | 'MT';
+    configuration_compteur: '2 fils' | '4 fils';
+    amperage: number;
+    composantes_coffret: string;
+    cable_type: string;
+    date_installation: string;
+    commentaire_cable: string;
+    protection_terre: boolean;
+    barette_de_coupure: boolean;
+    valeur_terre: number;
+    terre_dans_pc: boolean;
+    presence_differentiel: boolean;
+    commentaire_terre: string;
+    photo_coffret?: File[];
+    photo_cable_electrique?: File[];
+    photo_type_cable?: File[];
+    photo_barette_coupure?: File[];
+    photo_terre_pc?: File[];
+  };
+
+  const [newInstallation, setNewInstallation] = useState<NewInstallation>({
     client_id: clientId,
     type_compteur: 'BT' as 'BT' | 'MT',
     configuration_compteur: '4 fils' as '2 fils' | '4 fils',
@@ -41,6 +64,56 @@ export function InstallationSection({ clientId = 1 }: InstallationSectionProps) 
     presence_differentiel: true,
     commentaire_terre: ''
   });
+
+  // Camera handling
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraTarget, setCameraTarget] = useState<keyof NewInstallation | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const startCamera = async (target: keyof NewInstallation) => {
+    try {
+      setCameraTarget(target);
+      setCameraOpen(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch (err) {
+      toast({ title: 'Caméra indisponible', description: 'Vérifiez les permissions du navigateur.', variant: 'destructive' });
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setCameraOpen(false);
+    setCameraTarget(null);
+  };
+
+  const capturePhoto = async () => {
+    if (!videoRef.current || !cameraTarget) return;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      setNewInstallation((prev) => {
+        const current = Array.isArray((prev as any)[cameraTarget]) ? (prev as any)[cameraTarget] : [];
+        return { ...prev, [cameraTarget]: [...current, file] } as NewInstallation;
+      });
+      toast({ title: 'Photo capturée', description: 'Ajoutée au formulaire.', variant: 'default' });
+    }, 'image/jpeg', 0.9);
+  };
 
   useEffect(() => {
     loadInstallations();
@@ -88,7 +161,12 @@ export function InstallationSection({ clientId = 1 }: InstallationSectionProps) 
           valeur_terre: 0,
           terre_dans_pc: true,
           presence_differentiel: true,
-          commentaire_terre: ''
+          commentaire_terre: '',
+          photo_coffret: [],
+          photo_cable_electrique: [],
+          photo_type_cable: [],
+          photo_barette_coupure: [],
+          photo_terre_pc: []
         });
         setShowAddForm(false);
         await loadInstallations();
@@ -245,6 +323,143 @@ export function InstallationSection({ clientId = 1 }: InstallationSectionProps) 
                 </div>
               </div>
 
+              {/* Photos - Coffret, Câble, Type de câble, Barrette de coupure, Terre dans PC */}
+              <div className="space-y-6">
+                <h4 className="font-semibold text-gray-900">Captures photo (caméra)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Coffret */}
+                  <div className="space-y-2">
+                    <Label>Photo du coffret</Label>
+                    <div className="flex gap-2">
+                      <Input type="file" accept="image/*" capture="environment" multiple onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length) setNewInstallation(prev => ({ ...prev, photo_coffret: [ ...(prev.photo_coffret || []), ...files ] }));
+                      }} />
+                      <Button variant="outline" type="button" onClick={() => startCamera('photo_coffret')}>
+                        <Camera className="mr-2 h-4 w-4" /> Prendre une photo
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Câble électrique */}
+                  <div className="space-y-2">
+                    <Label>Photo du câble électrique</Label>
+                    <div className="flex gap-2">
+                      <Input type="file" accept="image/*" capture="environment" multiple onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length) setNewInstallation(prev => ({ ...prev, photo_cable_electrique: [ ...(prev.photo_cable_electrique || []), ...files ] }));
+                      }} />
+                      <Button variant="outline" type="button" onClick={() => startCamera('photo_cable_electrique')}>
+                        <Camera className="mr-2 h-4 w-4" /> Prendre une photo
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Type de câble */}
+                  <div className="space-y-2">
+                    <Label>Photo du type de câble</Label>
+                    <div className="flex gap-2">
+                      <Input type="file" accept="image/*" capture="environment" multiple onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length) setNewInstallation(prev => ({ ...prev, photo_type_cable: [ ...(prev.photo_type_cable || []), ...files ] }));
+                      }} />
+                      <Button variant="outline" type="button" onClick={() => startCamera('photo_type_cable')}>
+                        <Camera className="mr-2 h-4 w-4" /> Prendre une photo
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Barrette de coupure */}
+                  <div className="space-y-2">
+                    <Label>Photo de la barrette de coupure</Label>
+                    <div className="flex gap-2">
+                      <Input type="file" accept="image/*" capture="environment" multiple onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length) setNewInstallation(prev => ({ ...prev, photo_barette_coupure: [ ...(prev.photo_barette_coupure || []), ...files ] }));
+                      }} />
+                      <Button variant="outline" type="button" onClick={() => startCamera('photo_barette_coupure')}>
+                        <Camera className="mr-2 h-4 w-4" /> Prendre une photo
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Terre dans PC */}
+                  <div className="space-y-2">
+                    <Label>Photo de la terre dans PC</Label>
+                    <div className="flex gap-2">
+                      <Input type="file" accept="image/*" capture="environment" multiple onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length) setNewInstallation(prev => ({ ...prev, photo_terre_pc: [ ...(prev.photo_terre_pc || []), ...files ] }));
+                      }} />
+                      <Button variant="outline" type="button" onClick={() => startCamera('photo_terre_pc')}>
+                        <Camera className="mr-2 h-4 w-4" /> Prendre une photo
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Aperçu des photos capturées */}
+                <div className="space-y-4">
+                  <h5 className="font-medium text-gray-800">Aperçu des photos</h5>
+                  <div className="space-y-3">
+                    {newInstallation.photo_coffret?.length ? (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2">Coffret ({newInstallation.photo_coffret.length})</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {newInstallation.photo_coffret.map((file, idx) => (
+                            <img key={`coffret-${idx}`} src={URL.createObjectURL(file)} alt="Coffret" className="w-full h-24 object-cover rounded border" />
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {newInstallation.photo_cable_electrique?.length ? (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2">Câble électrique ({newInstallation.photo_cable_electrique.length})</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {newInstallation.photo_cable_electrique.map((file, idx) => (
+                            <img key={`cable-${idx}`} src={URL.createObjectURL(file)} alt="Câble" className="w-full h-24 object-cover rounded border" />
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {newInstallation.photo_type_cable?.length ? (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2">Type de câble ({newInstallation.photo_type_cable.length})</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {newInstallation.photo_type_cable.map((file, idx) => (
+                            <img key={`type-${idx}`} src={URL.createObjectURL(file)} alt="Type de câble" className="w-full h-24 object-cover rounded border" />
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {newInstallation.photo_barette_coupure?.length ? (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2">Barrette de coupure ({newInstallation.photo_barette_coupure.length})</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {newInstallation.photo_barette_coupure.map((file, idx) => (
+                            <img key={`barette-${idx}`} src={URL.createObjectURL(file)} alt="Barrette" className="w-full h-24 object-cover rounded border" />
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {newInstallation.photo_terre_pc?.length ? (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2">Terre dans PC ({newInstallation.photo_terre_pc.length})</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {newInstallation.photo_terre_pc.map((file, idx) => (
+                            <img key={`terre-${idx}`} src={URL.createObjectURL(file)} alt="Terre" className="w-full h-24 object-cover rounded border" />
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setShowAddForm(false)} disabled={saving}>
@@ -349,5 +564,23 @@ export function InstallationSection({ clientId = 1 }: InstallationSectionProps) 
         )}
       </CardContent>
     </Card>
+
+    {/* Camera dialog */}
+    <Dialog open={cameraOpen} onOpenChange={(open) => { if (!open) stopCamera(); }}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Capture caméra</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <video ref={videoRef} className="w-full rounded bg-black" playsInline />
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={stopCamera}>Fermer</Button>
+            <Button onClick={capturePhoto}>
+              <Camera className="mr-2 h-4 w-4" /> Capturer
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

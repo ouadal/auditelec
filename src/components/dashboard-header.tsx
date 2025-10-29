@@ -35,7 +35,7 @@ const pageTitles: { [key: string]: string } = {
   '/dashboard/building-info': 'Gestion des Bâtiments',
   '/dashboard/electrical': 'Installation Électrique',
   '/dashboard/audit': 'Configuration de l\'Audit',
-  '/dashboard/equipements': 'Équipements & Énergie',
+  '/dashboard/equipements': 'Équipements & Énergies',
   '/dashboard/inventory': 'Inventaire des Équipements', // Ancien lien pour compatibilité
   '/dashboard/energy': 'Calcul Énergétique', // Ancien lien pour compatibilité
   '/dashboard/reports': 'Rapports et Exports',
@@ -78,7 +78,7 @@ export function DashboardHeader() {
         <SidebarTrigger className="md:hidden" />
         <Link href="/dashboard" className="hidden items-center gap-2 font-semibold md:flex">
           <Waves className="h-6 w-6 text-primary" />
-          <span className="text-lg">EnerAudit</span>
+          <span className="text-lg">Medlight</span>
         </Link>
       </div>
 

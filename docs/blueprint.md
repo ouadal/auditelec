@@ -1,4 +1,4 @@
-# **App Name**: EnerAudit Dashboard
+# **App Name**: Medlight Dashboard
 
 ## Core Features:
 

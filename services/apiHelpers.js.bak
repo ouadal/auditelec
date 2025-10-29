@@ -1,0 +1,144 @@
+import api from "./api";
+import axios from "axios";
+
+// Gestionnaire d'erreur générique
+function handleError(error, message) {
+  console.error(message, error);
+  throw {
+    message: error.details?.userMessage || message,
+    details: error.details,
+    originalError: error
+  };
+}
+
+// Fonctions d'aide pour les appels API
+const apiHelpers = {
+  // Obtenir le token CSRF
+  getCsrfToken: async () => {
+    try {
+      await axios.get("http://127.0.0.1:8000/sanctum/csrf-cookie", {
+        withCredentials: true,
+      });
+    } catch (error) {
+      handleError(error, "Erreur lors de la récupération du token CSRF");
+    }
+  },
+
+  // Clients
+  clients: {
+    getAll: async () => {
+      try {
+        await apiHelpers.getCsrfToken();
+        const response = await api.get("/clients");
+        if (!response?.data) throw new Error("Réponse invalide du serveur");
+        return response.data;
+      } catch (error) {
+        handleError(error, "Impossible de récupérer la liste des clients");
+      }
+    },
+
+    getById: async (id) => {
+      try {
+        const response = await api.get(`/clients/${id}`);
+        if (!response?.data) throw new Error("Réponse invalide du serveur");
+        return response.data;
+      } catch (error) {
+        handleError(error, `Impossible de récupérer le client ${id}`);
+      }
+    },
+
+    create: async (data) => {
+      try {
+        await apiHelpers.getCsrfToken();
+        const response = await api.post("/clients", data);
+        if (!response?.data) throw new Error("Réponse invalide du serveur");
+        return response.data;
+      } catch (error) {
+        handleError(error, "Impossible de créer le client");
+      }
+    },
+
+    update: async (id, data) => {
+      try {
+        const response = await api.put(`/clients/${id}`, data);
+        if (!response?.data) throw new Error("Réponse invalide du serveur");
+        return response.data;
+      } catch (error) {
+        handleError(error, `Impossible de mettre à jour le client ${id}`);
+      }
+    },
+
+    delete: async (id) => {
+      try {
+        const response = await api.delete(`/clients/${id}`);
+        return response.data;
+      } catch (error) {
+        handleError(error, `Impossible de supprimer le client ${id}`);
+      }
+    }
+  },
+
+  // Audits
+  audits: {
+    getAll: async () => {
+      try {
+        const response = await api.get("/audits");
+        if (!response?.data) throw new Error("Réponse invalide du serveur");
+        return response.data;
+      } catch (error) {
+        handleError(error, "Impossible de récupérer la liste des audits");
+      }
+    },
+
+    getById: async (id) => {
+      try {
+        const response = await api.get(`/audits/${id}`);
+        if (!response?.data) throw new Error("Réponse invalide du serveur");
+        return response.data;
+      } catch (error) {
+        handleError(error, `Impossible de récupérer l'audit ${id}`);
+      }
+    },
+
+    create: async (data) => {
+      try {
+        const response = await api.post("/audits", data);
+        if (!response?.data) throw new Error("Réponse invalide du serveur");
+        return response.data;
+      } catch (error) {
+        handleError(error, "Impossible de créer l'audit");
+      }
+    },
+
+    update: async (id, data) => {
+      try {
+        const response = await api.put(`/audits/${id}`, data);
+        if (!response?.data) throw new Error("Réponse invalide du serveur");
+        return response.data;
+      } catch (error) {
+        handleError(error, `Impossible de mettre à jour l'audit ${id}`);
+      }
+    },
+
+    delete: async (id) => {
+      try {
+        const response = await api.delete(`/audits/${id}`);
+        return response.data;
+      } catch (error) {
+        handleError(error, `Impossible de supprimer l'audit ${id}`);
+      }
+    },
+
+    getOrCreateForBatiment: async (data) => {
+      try {
+        const response = await api.post("/audits/get-or-create", data);
+        if (!response?.data) throw new Error("Réponse invalide du serveur");
+        return response.data;
+      } catch (error) {
+        handleError(error, "Impossible de récupérer ou créer l'audit pour ce bâtiment");
+      }
+    }
+  }
+};
+
+export { apiHelpers };

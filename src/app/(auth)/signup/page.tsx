@@ -18,7 +18,7 @@ export default function SignupPage() {
         <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center items-center gap-2">
                 <Waves className="h-8 w-8 text-primary" />
-                <CardTitle className="text-3xl font-bold">EnerAudit</CardTitle>
+                <CardTitle className="text-3xl font-bold">Medlight</CardTitle>
             </div>
             <CardDescription>Créez votre compte pour commencer</CardDescription>
         </CardHeader>

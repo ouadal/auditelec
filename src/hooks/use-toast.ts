@@ -1,18 +1,20 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 
 export interface Toast {
   id: string;
   title?: string;
   description?: string;
   variant?: 'default' | 'destructive';
+  action?: ReactNode;
 }
 
 export function useToast() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const toast = ({ title, description, variant = 'default' }: Omit<Toast, 'id'>) => {
+  const toast = ({ title, description, variant = 'default', action }: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
-    const newToast: Toast = { id, title, description, variant };
+    const newToast: Toast = { id, title, description, variant, action };
     
     setToasts(prev => [...prev, newToast]);
     
@@ -21,12 +23,7 @@ export function useToast() {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 5000);
     
-    // Simple console log for now (you can replace with actual toast UI later)
-    if (variant === 'destructive') {
-      console.error(`❌ ${title}: ${description}`);
-    } else {
-      console.log(`✅ ${title}: ${description}`);
-    }
+    // No system console logs here — the UI Toaster (Radix) renders the toast.
   };
 
   return { toast, toasts };

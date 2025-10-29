@@ -1,47 +1,37 @@
 import api from './api';
 import axios from 'axios';
 
-// Services pour les Prises Électriques
+// Services pour les Prises Ã‰lectriques
 export const priseElectriqueService = {
-  // Récupérer toutes les prises d'une installation
+  // RÃ©cupÃ©rer toutes les prises d'une installation
   getByInstallation: async (installationId) => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api-web/prises-electriques?installation_id=${installationId}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await api.get(`/prises-electriques?installation_id=${installationId}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération des prises:', error);
+      console.warn('Erreur lors de la rÃ©cupÃ©ration des prises:', error);
       throw error;
     }
   },
 
-  // Créer une nouvelle prise
+  // CrÃ©er une nouvelle prise
   create: async (priseData) => {
     try {
       // Si pas de photos, envoyer en JSON
       if (!priseData.photos || priseData.photos.length === 0) {
         const jsonData = { ...priseData };
         delete jsonData.photos;
-        
-        const response = await axios.post('http://127.0.0.1:8000/api-web/prises-electriques', jsonData, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        });
+        const response = await api.post('/prises-electriques', jsonData);
         return response.data;
       }
       
       // Sinon utiliser FormData pour les photos
       const formData = new FormData();
       
-      // Ajouter les données de base
+      // Ajouter les donnÃ©es de base
       Object.keys(priseData).forEach(key => {
         if (key !== 'photos' && priseData[key] !== null && priseData[key] !== undefined) {
-          // Convertir les booléens en entiers pour Laravel
+          // Convertir les boolÃ©ens en entiers pour Laravel
           if (typeof priseData[key] === 'boolean') {
             formData.append(key, priseData[key] ? '1' : '0');
           } else {
@@ -57,24 +47,21 @@ export const priseElectriqueService = {
         });
       }
 
-      const response = await axios.post('http://127.0.0.1:8000/api-web/prises-electriques', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Accept': 'application/json',
-        },
+      const response = await api.post('/prises-electriques', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la création de la prise:', error);
+      console.warn('Erreur lors de la crÃ©ation de la prise:', error);
       if (error.response) {
-        console.error('Status:', error.response.status);
-        console.error('Réponse du serveur:', error.response.data);
+        console.warn('Status:', error.response.status);
+        console.warn('Réponse du serveur:', error.response.data);
       }
       throw error;
     }
   },
 
-  // Mettre à jour une prise
+  // Mettre Ã  jour une prise
   update: async (id, priseData) => {
     try {
       // Si pas de nouvelles photos, utiliser JSON avec PUT direct
@@ -83,17 +70,11 @@ export const priseElectriqueService = {
         delete jsonData.photos;
         delete jsonData.id;
         
-        // Convertir les booléens en entiers pour Laravel
+        // Convertir les boolÃ©ens en entiers pour Laravel
         if (typeof jsonData.avec_terre === 'boolean') {
           jsonData.avec_terre = jsonData.avec_terre ? 1 : 0;
         }
-        
-        const response = await axios.put(`http://127.0.0.1:8000/api-web/prises-electriques/${id}`, jsonData, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        });
+        const response = await api.put(`/prises-electriques/${id}`, jsonData);
         return response.data;
       }
       
@@ -101,10 +82,10 @@ export const priseElectriqueService = {
       const formData = new FormData();
       formData.append('_method', 'PUT');
       
-      // Ajouter les données de base
+      // Ajouter les donnÃ©es de base
       Object.keys(priseData).forEach(key => {
         if (key !== 'photos' && key !== 'id' && priseData[key] !== null && priseData[key] !== undefined) {
-          // Convertir les booléens en entiers pour Laravel
+          // Convertir les boolÃ©ens en entiers pour Laravel
           if (typeof priseData[key] === 'boolean') {
             formData.append(key, priseData[key] ? '1' : '0');
           } else {
@@ -118,18 +99,15 @@ export const priseElectriqueService = {
         formData.append(`photo_prise[${index}]`, photo);
       });
 
-      const response = await axios.post(`http://127.0.0.1:8000/api-web/prises-electriques/${id}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Accept': 'application/json',
-        },
+      const response = await api.post(`/prises-electriques/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la mise à jour de la prise:', error);
+      console.warn('Erreur lors de la mise Ã  jour de la prise:', error);
       if (error.response) {
-        console.error('Status:', error.response.status);
-        console.error('Réponse du serveur:', error.response.data);
+        console.warn('Status:', error.response.status);
+        console.warn('Réponse du serveur:', error.response.data);
       }
       throw error;
     }
@@ -138,29 +116,25 @@ export const priseElectriqueService = {
   // Supprimer une prise
   delete: async (id) => {
     try {
-      const response = await axios.delete(`http://127.0.0.1:8000/api-web/prises-electriques/${id}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await api.delete(`/prises-electriques/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la suppression de la prise:', error);
+      console.warn('Erreur lors de la suppression de la prise:', error);
       if (error.response) {
-        console.error('Status:', error.response.status);
-        console.error('Réponse du serveur:', error.response.data);
+        console.warn('Status:', error.response.status);
+        console.warn('Réponse du serveur:', error.response.data);
       }
       throw error;
     }
   },
 
-  // Récupérer une prise spécifique
+  // RÃ©cupÃ©rer une prise spÃ©cifique
   getById: async (id) => {
     try {
       const response = await api.get(`/prises-electriques/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération de la prise:', error);
+      console.warn('Erreur lors de la rÃ©cupÃ©ration de la prise:', error);
       throw error;
     }
   }
@@ -168,45 +142,35 @@ export const priseElectriqueService = {
 
 // Services pour les Interrupteurs
 export const interrupteurService = {
-  // Récupérer tous les interrupteurs d'une installation
+  // RÃ©cupÃ©rer tous les interrupteurs d'une installation
   getByInstallation: async (installationId) => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api-web/interrupteurs?installation_id=${installationId}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await api.get(`/interrupteurs?installation_id=${installationId}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération des interrupteurs:', error);
+      console.warn('Erreur lors de la rÃ©cupÃ©ration des interrupteurs:', error);
       throw error;
     }
   },
 
-  // Créer un nouveau interrupteur
+  // CrÃ©er un nouveau interrupteur
   create: async (interrupteurData) => {
     try {
       // Si pas de photos, envoyer en JSON
       if (!interrupteurData.photos || interrupteurData.photos.length === 0) {
         const jsonData = { ...interrupteurData };
         delete jsonData.photos;
-        
-        const response = await axios.post('http://127.0.0.1:8000/api-web/interrupteurs', jsonData, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        });
+        const response = await api.post('/interrupteurs', jsonData);
         return response.data;
       }
       
       // Sinon utiliser FormData pour les photos
       const formData = new FormData();
       
-      // Ajouter les données de base
+      // Ajouter les donnÃ©es de base
       Object.keys(interrupteurData).forEach(key => {
         if (key !== 'photos' && interrupteurData[key] !== null && interrupteurData[key] !== undefined) {
-          // Convertir les booléens en entiers pour Laravel
+          // Convertir les boolÃ©ens en entiers pour Laravel
           if (typeof interrupteurData[key] === 'boolean') {
             formData.append(key, interrupteurData[key] ? '1' : '0');
           } else {
@@ -222,23 +186,20 @@ export const interrupteurService = {
         });
       }
 
-      const response = await axios.post('http://127.0.0.1:8000/api-web/interrupteurs', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Accept': 'application/json',
-        },
+      const response = await api.post('/interrupteurs', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la création de l\'interrupteur:', error);
+      console.warn('Erreur lors de la crÃ©ation de l\'interrupteur:', error);
       if (error.response) {
-        console.error('Réponse du serveur:', error.response.data);
+        console.warn('Réponse du serveur:', error.response.data);
       }
       throw error;
     }
   },
 
-  // Mettre à jour un interrupteur
+  // Mettre Ã  jour un interrupteur
   update: async (id, interrupteurData) => {
     try {
       // Si pas de nouvelles photos, utiliser JSON avec PUT direct
@@ -246,13 +207,7 @@ export const interrupteurService = {
         const jsonData = { ...interrupteurData };
         delete jsonData.photos;
         delete jsonData.id;
-        
-        const response = await axios.put(`http://127.0.0.1:8000/api-web/interrupteurs/${id}`, jsonData, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        });
+        const response = await api.put(`/interrupteurs/${id}`, jsonData);
         return response.data;
       }
       
@@ -260,10 +215,10 @@ export const interrupteurService = {
       const formData = new FormData();
       formData.append('_method', 'PUT');
       
-      // Ajouter les données de base
+      // Ajouter les donnÃ©es de base
       Object.keys(interrupteurData).forEach(key => {
         if (key !== 'photos' && key !== 'id' && interrupteurData[key] !== null && interrupteurData[key] !== undefined) {
-          // Convertir les booléens en entiers pour Laravel
+          // Convertir les boolÃ©ens en entiers pour Laravel
           if (typeof interrupteurData[key] === 'boolean') {
             formData.append(key, interrupteurData[key] ? '1' : '0');
           } else {
@@ -277,18 +232,15 @@ export const interrupteurService = {
         formData.append(`photo_interrupteur[${index}]`, photo);
       });
 
-      const response = await axios.post(`http://127.0.0.1:8000/api-web/interrupteurs/${id}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Accept': 'application/json',
-        },
+      const response = await api.post(`/interrupteurs/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la mise à jour de l\'interrupteur:', error);
+      console.warn('Erreur lors de la mise Ã  jour de l\'interrupteur:', error);
       if (error.response) {
-        console.error('Status:', error.response.status);
-        console.error('Réponse du serveur:', error.response.data);
+        console.warn('Status:', error.response.status);
+        console.warn('Réponse du serveur:', error.response.data);
       }
       throw error;
     }
@@ -297,29 +249,25 @@ export const interrupteurService = {
   // Supprimer un interrupteur
   delete: async (id) => {
     try {
-      const response = await axios.delete(`http://127.0.0.1:8000/api-web/interrupteurs/${id}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await api.delete(`/interrupteurs/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la suppression de l\'interrupteur:', error);
+      console.warn('Erreur lors de la suppression de l\'interrupteur:', error);
       if (error.response) {
-        console.error('Status:', error.response.status);
-        console.error('Réponse du serveur:', error.response.data);
+        console.warn('Status:', error.response.status);
+        console.warn('Réponse du serveur:', error.response.data);
       }
       throw error;
     }
   },
 
-  // Récupérer un interrupteur spécifique
+  // RÃ©cupÃ©rer un interrupteur spÃ©cifique
   getById: async (id) => {
     try {
       const response = await api.get(`/interrupteurs/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération de l\'interrupteur:', error);
+      console.warn('Erreur lors de la rÃ©cupÃ©ration de l\'interrupteur:', error);
       throw error;
     }
   }
@@ -327,32 +275,24 @@ export const interrupteurService = {
 
 // Services pour les Clients
 export const clientService = {
-  // Récupérer tous les clients
+  // RÃ©cupÃ©rer tous les clients
   getAll: async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:8000/api-web/clients', {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await api.get('/clients');
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération des clients:', error);
+      console.error('Erreur lors de la rÃ©cupÃ©ration des clients:', error);
       throw error;
     }
   },
 
-  // Récupérer un client spécifique
+  // RÃ©cupÃ©rer un client spÃ©cifique
   getById: async (id) => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api-web/clients/${id}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await api.get(`/clients/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération du client:', error);
+      console.error('Erreur lors de la rÃ©cupÃ©ration du client:', error);
       throw error;
     }
   }
@@ -360,33 +300,29 @@ export const clientService = {
 
 // Services pour les Installations
 export const installationService = {
-  // Récupérer toutes les installations d'un client
+  // RÃ©cupÃ©rer toutes les installations d'un client
   getByClient: async (clientId) => {
     try {
       const response = await api.get(`/installations?client_id=${clientId}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération des installations:', error);
+      console.error('Erreur lors de la rÃ©cupÃ©ration des installations:', error);
       throw error;
     }
   },
 
-  // Récupérer toutes les installations
+  // RÃ©cupÃ©rer toutes les installations
   getAll: async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:8000/api-web/installations', {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await api.get('/installations');
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération des installations:', error);
+      console.warn('Erreur lors de la rÃ©cupÃ©ration des installations:', error);
       throw error;
     }
   },
 
-  // Créer une nouvelle installation
+  // CrÃ©er une nouvelle installation
   create: async (installationData) => {
     try {
       // Si pas de photos, envoyer en JSON
@@ -411,22 +347,17 @@ export const installationService = {
           delete jsonData[field];
         });
 
-        const response = await axios.post('http://127.0.0.1:8000/api-web/installations', jsonData, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        });
+        const response = await api.post('/installations', jsonData);
         return response.data;
       }
       
       // Sinon utiliser FormData pour les photos
       const formData = new FormData();
       
-      // Ajouter les données de base
+      // Ajouter les donnÃ©es de base
       Object.keys(installationData).forEach(key => {
         if (!key.startsWith('photo_') && installationData[key] !== null && installationData[key] !== undefined) {
-          // Convertir les booléens en entiers pour Laravel
+          // Convertir les boolÃ©ens en entiers pour Laravel
           if (typeof installationData[key] === 'boolean') {
             formData.append(key, installationData[key] ? '1' : '0');
           } else {
@@ -452,23 +383,20 @@ export const installationService = {
         }
       });
 
-      const response = await axios.post('http://127.0.0.1:8000/api-web/installations', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Accept': 'application/json',
-        },
+      const response = await api.post('/installations', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la création de l\'installation:', error);
+      console.warn('Erreur lors de la crÃ©ation de l\'installation:', error);
       if (error.response) {
-        console.error('Réponse du serveur:', error.response.data);
+        console.warn('Réponse du serveur:', error.response.data);
       }
       throw error;
     }
   },
 
-  // Mettre à jour une installation
+  // Mettre Ã  jour une installation
   update: async (id, installationData) => {
     try {
       // Si pas de photos, envoyer en JSON avec PUT
@@ -493,12 +421,7 @@ export const installationService = {
           delete jsonData[field];
         });
 
-        const response = await axios.put(`http://127.0.0.1:8000/api-web/installations/${id}`, jsonData, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        });
+        const response = await api.put(`/installations/${id}`, jsonData);
         return response.data;
       }
       
@@ -506,10 +429,10 @@ export const installationService = {
       const formData = new FormData();
       formData.append('_method', 'PUT');
       
-      // Ajouter les données de base
+      // Ajouter les donnÃ©es de base
       Object.keys(installationData).forEach(key => {
         if (!key.startsWith('photo_') && installationData[key] !== null && installationData[key] !== undefined) {
-          // Convertir les booléens en entiers pour Laravel
+          // Convertir les boolÃ©ens en entiers pour Laravel
           if (typeof installationData[key] === 'boolean') {
             formData.append(key, installationData[key] ? '1' : '0');
           } else {
@@ -535,17 +458,14 @@ export const installationService = {
         }
       });
 
-      const response = await axios.post(`http://127.0.0.1:8000/api-web/installations/${id}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Accept': 'application/json',
-        },
+      const response = await api.post(`/installations/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la mise à jour de l\'installation:', error);
+      console.warn('Erreur lors de la mise à jour de l\'installation:', error);
       if (error.response) {
-        console.error('Réponse du serveur:', error.response.data);
+        console.warn('Réponse du serveur:', error.response.data);
       }
       throw error;
     }
@@ -554,28 +474,24 @@ export const installationService = {
   // Supprimer une installation
   delete: async (id) => {
     try {
-      const response = await axios.delete(`http://127.0.0.1:8000/api-web/installations/${id}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await api.delete(`/installations/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la suppression de l\'installation:', error);
+      console.warn('Erreur lors de la suppression de l\'installation:', error);
       if (error.response) {
-        console.error('Réponse du serveur:', error.response.data);
+        console.warn('Réponse du serveur:', error.response.data);
       }
       throw error;
     }
   },
 
-  // Récupérer une installation spécifique
+  // RÃ©cupÃ©rer une installation spÃ©cifique
   getById: async (id) => {
     try {
       const response = await api.get(`/installations/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération de l\'installation:', error);
+      console.error('Erreur lors de la rÃ©cupÃ©ration de l\'installation:', error);
       throw error;
     }
   }

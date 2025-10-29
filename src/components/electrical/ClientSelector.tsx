@@ -45,19 +45,30 @@ export function ClientSelector({
       setError(null);
       console.log("🔄 Chargement des projets...");
       const response = await clientService.getAll();
-      console.log("✅ Réponse API projets:", response);
-
-      const clientsData = response.data || [];
-      console.log("📊 Nombre de projets trouvés:", clientsData.length);
+      // Le service retourne déjà response.data (Laravel: { success, data })
+      const clientsData = Array.isArray((response as any)?.data)
+        ? (response as any).data
+        : Array.isArray(response)
+        ? (response as any)
+        : ((response as any)?.data ?? []);
+      console.log("✅ Projets chargés:", clientsData.length);
       setClients(clientsData);
     } catch (error) {
-      console.error("❌ Erreur lors du chargement des projets:", error);
-      if (error && typeof error === "object" && "response" in error) {
-        const axiosError = error as any;
-        console.error("Status:", axiosError.response?.status);
-        console.error("Data:", axiosError.response?.data);
+      // Éviter les console.error pour ne pas déclencher l'overlay d'erreurs Next
+      const axiosError = error as any;
+      const status = axiosError?.response?.status;
+      const respData = axiosError?.response?.data;
+      console.warn("⚠️ Impossible de charger les projets", {
+        status,
+        data: respData,
+      });
+      let message = "Impossible de charger les projets";
+      if (!axiosError?.response) {
+        message = "API indisponible. Vérifiez le backend sur http://localhost:8000.";
+      } else if (typeof respData === "object" && respData?.message) {
+        message = respData.message;
       }
-      setError("Impossible de charger les projets");
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -136,18 +147,11 @@ export function ClientSelector({
                   </SelectItem>
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id.toString()}>
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                          <Building className="h-4 w-4" />
-                          <span className="font-medium">
-                            {client.contact_nom}
-                          </span>
-                        </div>
-                        {client.nom_entreprise && (
-                          <span className="text-sm text-gray-500 ml-6">
-                            {client.nom_entreprise}
-                          </span>
-                        )}
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4" />
+                        <span className="font-medium">
+                          {client.nom_entreprise || client.contact_nom}
+                        </span>
                       </div>
                     </SelectItem>
                   ))}

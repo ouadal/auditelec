@@ -89,7 +89,7 @@ export default function RegisterPage() {
           <div className="flex justify-center mb-4">
             <Waves className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold">EnerAudit</CardTitle>
+        <CardTitle className="text-2xl font-bold">Medlight</CardTitle>
           <CardDescription>
             Créez votre compte pour accéder au dashboard
           </CardDescription>

@@ -8,6 +8,7 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
+  ToastAction,
 } from "@/components/ui/toast"
 
 export function Toaster() {
@@ -24,7 +25,12 @@ export function Toaster() {
                 <ToastDescription>{description}</ToastDescription>
               )}
             </div>
-            {action}
+            {action && (
+              // Wrap action in the Radix ToastAction for correct behavior/styling
+              <ToastAction altText="Action">
+                {action}
+              </ToastAction>
+            )}
             <ToastClose />
           </Toast>
         )

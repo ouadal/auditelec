@@ -16,8 +16,6 @@ import {
   Building, 
   Plus, 
   MapPin, 
-  Users, 
-  Calendar,
   Eye,
   Settings,
   Edit,
@@ -25,11 +23,22 @@ import {
   Trash2
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Projet {
   id: number;
   contact_nom: string;
   contact_email: string;
+  nom_entreprise?: string;
 }
 
 interface BatimentData {
@@ -87,6 +96,8 @@ export default function BuildingInfoPage() {
   const [batiments, setBatiments] = useState<Batiment[]>([]);
   const [showForm, setShowForm] = useState(!!batimentId);
   const [editingId, setEditingId] = useState<number | null>(batimentId ? parseInt(batimentId) : null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [batimentToDelete, setBatimentToDelete] = useState<Batiment | null>(null);
   const [formData, setFormData] = useState<BatimentData>({
     client_id: 0,
     nom_batiment: '',
@@ -182,12 +193,31 @@ export default function BuildingInfoPage() {
           }
         }
       } catch (error) {
-        console.error('❌ Erreur lors du chargement:', error);
-        toast({
-          title: "Erreur",
-          description: "Erreur lors du chargement des données",
-          variant: "destructive",
-        });
+          // Log détaillé pour diagnostiquer les erreurs 500 renvoyées par le backend
+          console.error('❌ Erreur lors du chargement:', error);
+          try {
+            // axios error shape
+            // @ts-ignore
+            const resp = error?.response;
+            if (resp) {
+              console.error('Response status:', resp.status);
+              console.error('Response data:', resp.data);
+              toast({
+                title: `Erreur ${resp.status}`,
+                description: resp.data?.message || 'Erreur lors du chargement des données',
+                variant: 'destructive',
+              });
+            } else {
+              toast({
+                title: "Erreur",
+                description: "Erreur lors du chargement des données",
+                variant: "destructive",
+              });
+            }
+          } catch (e) {
+            console.error('Erreur lors du traitement de l\'erreur:', e);
+            toast({ title: "Erreur", description: "Erreur lors du chargement des données", variant: "destructive" });
+          }
       } finally {
         const totalTime = Date.now() - startTime;
         console.log(`🏁 Chargement terminé en ${totalTime}ms`);
@@ -225,79 +255,41 @@ export default function BuildingInfoPage() {
     });
   };
 
-  const handleSubmit = async () => {
-    console.log('💾 handleSubmit déclenché');
-    console.log('📝 Données du formulaire:', formData);
-    console.log('🔄 Mode édition:', isEditing);
-    console.log('🆔 batimentId:', batimentId);
-    
-    // Validation basique
-    if (!formData.nom_batiment || !formData.adresse_site || !formData.commune) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs obligatoires (nom du bâtiment, adresse du site, commune)",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    // Validation nom du bâtiment
-    if (formData.nom_batiment.length < 2) {
-      toast({
-        title: "Erreur",
-        description: "Le nom du bâtiment doit contenir au moins 2 caractères",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validation nom du bâtiment (longueur minimale)
-    if (formData.nom_batiment.trim().length < 2) {
-      toast({
-        title: "Erreur",
-        description: "Le nom du bâtiment doit contenir au moins 2 caractères",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validation adresse du site (longueur minimale)
-    if (formData.adresse_site.trim().length < 5) {
-      toast({
-        title: "Erreur",
-        description: "L'adresse du site doit contenir au moins 5 caractères",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validation commune (seulement des lettres)
-    const communeRegex = /^[a-zA-ZÀ-ÿ\s\-']+$/;
-    if (!communeRegex.test(formData.commune)) {
-      toast({
-        title: "Erreur",
-        description: "La commune ne doit contenir que des lettres, espaces, tirets et apostrophes",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validation année de mise en service
+    // Validation rapide côté client avant d'envoyer au serveur
     const currentYear = new Date().getFullYear();
+    const requiredFields = {
+      client_id: 'Projet',
+      nom_batiment: 'Nom du bâtiment',
+      adresse_site: 'Adresse du site',
+      commune: 'Commune',
+      type_fonction: 'Type/Fonction du bâtiment',
+      type_bail: 'Type de bail',
+      forme_batiment: 'Forme du bâtiment'
+    };
+
+    // Vérifier tous les champs requis d'un coup
+    const missingFields = Object.entries(requiredFields)
+      .filter(([field, label]) => !formData[field as keyof typeof formData])
+      .map(([_, label]) => label);
+
+    if (missingFields.length > 0) {
+      toast({
+        title: 'Champs requis manquants',
+        description: `Veuillez remplir : ${missingFields.join(', ')}`,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Validation de l'année
     if (formData.annee_mise_service > 0 && (formData.annee_mise_service < 1900 || formData.annee_mise_service > currentYear + 5)) {
       toast({
-        title: "Erreur",
+        title: 'Erreur',
         description: `L'année de mise en service doit être entre 1900 et ${currentYear + 5}`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (formData.client_id === 0) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner un projet",
-        variant: "destructive",
+        variant: 'destructive'
       });
       return;
     }
@@ -305,57 +297,40 @@ export default function BuildingInfoPage() {
     setLoading(true);
 
     try {
+      // Fermer le formulaire immédiatement pour une meilleure UX
+      setShowForm(false);
+      window.scrollTo(0, 0);
+
+      // Appel API pour créer ou mettre à jour le bâtiment
       if (isEditing) {
-        console.log('🔄 Mode mise à jour - Appel API update avec ID:', batimentId);
-        
-        // Utiliser l'ID en cours d'édition
-        const idToUpdate = editingId!;
-        console.log('🆔 ID utilisé pour la mise à jour:', idToUpdate);
-        
-        // Mise à jour
-        const response = await apiHelpers.batiments.update(idToUpdate, formData);
-        console.log('✅ Réponse API update:', response);
+        await apiHelpers.batiments.update(editingId!, formData);
         toast({
           title: "Succès",
-          description: "Bâtiment mis à jour avec succès",
+          description: "Bâtiment mis à jour avec succès"
         });
       } else {
-        console.log('➕ Mode création - Appel API create');
-        // Création
-        const response = await apiHelpers.batiments.create(formData);
-        console.log('✅ Réponse API create:', response);
+        await apiHelpers.batiments.create(formData);
         toast({
           title: "Succès",
-          description: "Bâtiment créé avec succès",
+          description: "Bâtiment créé avec succès"
         });
+        // Réinitialiser le formulaire après création
         resetForm();
       }
 
       // Recharger la liste des bâtiments
-      const batimentsResponse = await apiHelpers.batiments.getAll();
-      setBatiments(Array.isArray(batimentsResponse.data.data) ? batimentsResponse.data.data : []);
-      
-      // Fermer le formulaire et réinitialiser
-      if (!isEditing) {
-        setShowForm(false);
-      } else {
-        // En mode édition, retourner à la liste
-        setShowForm(false);
-        setEditingId(null);
-        router.push('/dashboard/building-info');
-      }
+      const response = await apiHelpers.batiments.getAll();
+      setBatiments(response.data?.data || []);
+
     } catch (error: any) {
-      console.error('Erreur lors de la sauvegarde:', error);
-      
-      let errorMessage = "Erreur lors de la sauvegarde";
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
+      console.error('Erreur:', error);
+      // Réafficher le formulaire en cas d'erreur
+      setShowForm(true);
       
       toast({
         title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
+        description: error.response?.data?.message || "Erreur lors de la sauvegarde du bâtiment",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
@@ -401,82 +376,87 @@ export default function BuildingInfoPage() {
     setEditingId(null);
     resetForm();
     setShowForm(true);
+    // Scroll to top for better UX
+    window.scrollTo(0, 0);
   };
 
   const handleCancelForm = () => {
     if (isEditing) {
-      router.push('/dashboard/building-info');
+      // Fermer le formulaire côté client immédiatement
+      // pour éviter d'avoir à cliquer deux fois (une pour retirer l'ID de l'url,
+      // une autre pour fermer l'affichage)
+      setShowForm(false);
       setEditingId(null);
+      resetForm();
+      // Naviguer vers la liste sans paramètre
+      router.push('/dashboard/building-info');
     } else {
       setShowForm(false);
       resetForm();
     }
   };
 
-  const handleDeleteBatiment = async (batiment: Batiment, e: React.MouseEvent) => {
-    e.stopPropagation(); // Empêcher la sélection de la carte
-    
-    console.log('🗑️ Tentative de suppression du bâtiment:', batiment.nom_batiment, 'ID:', batiment.id);
-    
-    // Confirmation de suppression
-    const confirmDelete = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer le bâtiment "${batiment.nom_batiment}" ?\n\nCette action est irréversible et supprimera également toutes les pièces associées.`
-    );
-    
-    if (!confirmDelete) {
-      console.log('❌ Suppression annulée par l\'utilisateur');
-      return;
-    }
-    
-    console.log('✅ Suppression confirmée, appel API...');
+  // Open confirmation dialog for deletion
+  const handleDeleteBatiment = (batiment: Batiment, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBatimentToDelete(batiment);
+    setShowDeleteDialog(true);
+  };
+
+  // Confirmed delete from dialog -> perform optimistic delete with undoable toast
+  const confirmDeleteBatiment = async () => {
+    if (!batimentToDelete) return;
+
+    const previous = [...batiments];
+    const target = batimentToDelete;
 
     try {
       setLoading(true);
-      
-      console.log('📡 Appel API de suppression pour ID:', batiment.id);
-      
-      // Appel API pour supprimer le bâtiment
-      const response = await apiHelpers.batiments.delete(batiment.id);
-      
-      console.log('✅ Réponse API suppression:', response);
-      
-      // Mettre à jour la liste locale
-      setBatiments(batiments.filter(b => b.id !== batiment.id));
-      
+
+      // Remove immediately for instant feedback
+      setBatiments(prev => prev.filter(b => b.id !== target.id));
+
+      let cancelled = false;
+      const undo = () => {
+        cancelled = true;
+        setBatiments(previous);
+        toast({ title: 'Annulé', description: 'Suppression annulée', variant: 'default' });
+      };
+
       toast({
-        title: "Succès",
-        description: `Bâtiment "${batiment.nom_batiment}" supprimé avec succès`,
+        title: 'Suppression',
+        description: `Bâtiment "${target.nom_batiment}" supprimé (Annuler dans 4s)`,
+        variant: 'destructive',
+        action: (
+          <Button variant="ghost" size="sm" onClick={undo}>
+            Annuler
+          </Button>
+        )
       });
-      
+
+      // wait 4s to allow undo
+      await new Promise<void>((resolve) => setTimeout(() => resolve(), 4000));
+      if (cancelled) return;
+
+      await apiHelpers.batiments.delete(target.id);
+      toast({ title: 'Succès', description: `Bâtiment "${target.nom_batiment}" supprimé` });
+
     } catch (error: any) {
       console.error('❌ Erreur lors de la suppression:', error);
-      console.error('❌ Détails de l\'erreur:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message
-      });
-      
+      setBatiments(previous);
       let errorMessage = "Erreur lors de la suppression du bâtiment";
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response?.status === 404) {
-        errorMessage = "Bâtiment non trouvé";
-      } else if (error.response?.status === 409) {
-        errorMessage = "Impossible de supprimer : le bâtiment contient des données liées";
-      }
-      
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      if (error.response?.data?.message) errorMessage = error.response.data.message;
+      toast({ title: 'Erreur', description: errorMessage, variant: 'destructive' });
     } finally {
       setLoading(false);
+      setShowDeleteDialog(false);
+      setBatimentToDelete(null);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
 
       
       {/* Header */}
@@ -517,6 +497,7 @@ export default function BuildingInfoPage() {
                   <Select 
                     value={formData.client_id > 0 ? formData.client_id.toString() : ""} 
                     onValueChange={(value) => handleInputChange('client_id', parseInt(value))}
+                    autoComplete="off"
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un projet" />
@@ -524,7 +505,7 @@ export default function BuildingInfoPage() {
                     <SelectContent>
                       {projets.map((projet) => (
                         <SelectItem key={projet.id} value={projet.id.toString()}>
-                          {projet.contact_nom} ({projet.contact_email})
+                          {projet.contact_nom} ({projet.nom_entreprise || "Nom du projet"})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -555,7 +536,7 @@ export default function BuildingInfoPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="site-address">Adresse du site *</Label>
+                  <Label htmlFor="site-address">Adresse du bâtiment *</Label>
                   <Input 
                     id="site-address" 
                     placeholder="ex: 123 Rue de la République, BP 456"
@@ -574,8 +555,8 @@ export default function BuildingInfoPage() {
                     placeholder="ex: Cotonou"
                     value={formData.commune}
                     onChange={(e) => {
-                      // Permettre seulement les lettres, espaces, tirets et apostrophes
-                      const value = e.target.value.replace(/[^a-zA-ZÀ-ÿ\s\-']/g, '');
+                      // Permettre les lettres, chiffres, espaces, tirets et apostrophes
+                      const value = e.target.value.replace(/[^a-zA-Z0-9À-ÿ\s\-']/g, '');
                       handleInputChange('commune', value);
                     }}
                     maxLength={100}
@@ -878,22 +859,16 @@ export default function BuildingInfoPage() {
                         <span>{batiment.type_fonction}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Surface:</span>
+                        <span className="text-muted-foreground">Adresse:</span>
+                        <span className="text-right">{batiment.adresse_site}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Commune:</span>
+                        <span>{batiment.commune}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Surface totale:</span>
                         <span>{batiment.surface_totale} m²</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Travailleurs:</span>
-                        <div className="flex items-center space-x-1">
-                          <Users className="h-4 w-4" />
-                          <span>{batiment.nb_travailleurs}</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Année:</span>
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{batiment.annee_mise_service}</span>
-                        </div>
                       </div>
                       {batiment.projet && (
                         <div className="flex justify-between">
@@ -933,5 +908,40 @@ export default function BuildingInfoPage() {
         </div>
       )}
     </div>
+      {/* Delete confirmation dialog (matches clients style + undoable toast) */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Confirmer la suppression
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce bâtiment ? Cette action est irréversible et supprimera également toutes les pièces associées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteBatiment}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  Suppression...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Supprimer
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

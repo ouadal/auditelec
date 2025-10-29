@@ -89,6 +89,44 @@ export default function EquipementsPageSimple() {
     loadData();
   }, []);
 
+  // Calcul d'énergie côté client (miroir du backend)
+  const computeEnergyDay = () => {
+    const heures = formData.heures_utilisation_jour ?? 8;
+
+    // Priorité: si tension ET courant sont fournis, utiliser U×I×cos(φ)
+    if (formData.tension && formData.courant) {
+      const fp = formData.facteur_puissance ?? 1.0;
+      const puissance_W = formData.tension * formData.courant * fp;
+      return (puissance_W / 1000) * heures; // kWh/jour
+    }
+
+    // Type énergie annuelle → kWh/jour
+    if (formData.type_valeur === "energie") {
+      return (formData.valeur_mesuree || 0) / 365;
+    }
+
+    // Type puissance directe
+    if (formData.type_valeur === "puissance") {
+      return (formData.valeur_mesuree || 0) / 1000 * heures;
+    }
+
+    // Type courant avec tension
+    if (formData.type_valeur === "courant" && formData.tension) {
+      const fp = formData.facteur_puissance ?? 1.0;
+      const puissance_W = formData.tension * (formData.valeur_mesuree || 0) * fp;
+      return (puissance_W / 1000) * heures;
+    }
+
+    // Type tension avec courant
+    if (formData.type_valeur === "tension" && formData.courant) {
+      const fp = formData.facteur_puissance ?? 1.0;
+      const puissance_W = (formData.valeur_mesuree || 0) * formData.courant * fp;
+      return (puissance_W / 1000) * heures;
+    }
+
+    return 0;
+  };
+
   // Réinitialiser le formulaire
   const resetForm = () => {
     setFormData({
@@ -303,9 +341,14 @@ export default function EquipementsPageSimple() {
                 </Select>
               </div>
 
-              {/* Valeur mesurée */}
+              {/* Valeur mesurée (libellé dynamique) */}
               <div>
-                <Label>Valeur mesurée</Label>
+                <Label>
+                  {formData.type_valeur === "puissance" && "Puissance (W)"}
+                  {formData.type_valeur === "courant" && "Courant (A)"}
+                  {formData.type_valeur === "tension" && "Tension (V)"}
+                  {formData.type_valeur === "energie" && "Énergie annuelle (kWh/an)"}
+                </Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -339,6 +382,50 @@ export default function EquipementsPageSimple() {
                   onChange={(e) => setFormData({ ...formData, facteur_puissance: parseFloat(e.target.value) || 1.0 })}
                 />
               </div>
+
+              {/* Champs conditionnels tension/courant selon le type */}
+              {(formData.type_valeur === "courant" || formData.type_valeur === "puissance" || formData.type_valeur === "energie") && (
+                <div>
+                  <Label>Tension (V) — requis si type = courant</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.tension}
+                    onChange={(e) => setFormData({ ...formData, tension: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+              )}
+
+              {(formData.type_valeur === "tension" || formData.type_valeur === "puissance" || formData.type_valeur === "energie") && (
+                <div>
+                  <Label>Courant (A) — requis si type = tension</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.courant}
+                    onChange={(e) => setFormData({ ...formData, courant: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Aperçu Énergie (calcul côté client) */}
+            <div className="rounded-md border p-4 bg-muted/30">
+              <div className="font-medium mb-2">Aperçu Énergie</div>
+              {(() => {
+                const eJour = computeEnergyDay();
+                const eAn = eJour * 365;
+                const eTotJour = eJour * (formData.nombre || 1);
+                const eTotAn = eAn * (formData.nombre || 1);
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    <div>Énergie/jour: <span className="font-semibold">{eJour.toFixed(3)} kWh</span></div>
+                    <div>Énergie/an: <span className="font-semibold">{eAn.toFixed(2)} kWh</span></div>
+                    <div>Total/jour ({formData.nombre} u.): <span className="font-semibold">{eTotJour.toFixed(3)} kWh</span></div>
+                    <div>Total/an ({formData.nombre} u.): <span className="font-semibold">{eTotAn.toFixed(2)} kWh</span></div>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="flex justify-end space-x-2">
@@ -367,11 +454,37 @@ export default function EquipementsPageSimple() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="text-sm">
-                  <div>Nombre: {equipement.nombre}</div>
-                  <div>Valeur: {equipement.valeur_mesuree} {equipement.type_valeur === "puissance" ? "W" : equipement.type_valeur === "courant" ? "A" : "V"}</div>
+                  <div>Nombre d'unités: {equipement.nombre}</div>
+                  <div>
+                    Valeur mesurée (
+                    {equipement.type_valeur === "tension"
+                      ? "Tension"
+                      : equipement.type_valeur === "courant"
+                      ? "Intensité"
+                      : equipement.type_valeur === "puissance"
+                      ? "Puissance"
+                      : "Mesure"}
+                    ): {equipement.valeur_mesuree}{" "}
+                    {equipement.type_valeur === "puissance"
+                      ? "W"
+                      : equipement.type_valeur === "courant"
+                      ? "A"
+                      : equipement.type_valeur === "tension"
+                      ? "V"
+                      : equipement.type_valeur === "energie"
+                      ? "kWh/an"
+                      : ""}
+                  </div>
                   <div>Heures/jour: {equipement.heures_utilisation_jour}h</div>
+                  {/* Valeur complémentaire (tension/intensité) selon type de saisie */}
+                  {equipement.type_valeur === "courant" && equipement.tension !== undefined && (
+                    <div>Tension saisie: {equipement.tension} V</div>
+                  )}
+                  {equipement.type_valeur === "tension" && equipement.courant !== undefined && (
+                    <div>Intensité saisie: {equipement.courant} A</div>
+                  )}
                   {equipement.energie_avec_unite && (
-                    <div className="font-medium text-primary">Énergie: {equipement.energie_avec_unite}</div>
+                    <div className="font-medium text-primary">Énergies: {equipement.energie_avec_unite}</div>
                   )}
                 </div>
                 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Camera, Upload, X, Save } from "lucide-react";
 import { InstallationForm as InstallationFormType } from "@/types/electrical";
 
@@ -30,8 +31,15 @@ export function InstallationForm({
   onCancel,
   isEditing = false,
 }: InstallationFormProps) {
+  type PhotoField =
+    | "photo_coffret"
+    | "photo_cable_electrique"
+    | "photo_type_cable"
+    | "photo_barette_coupure"
+    | "photo_terre_pc";
+
   const [formData, setFormData] = useState<InstallationFormType>({
-    client_id: initialData?.client_id || 1,
+    client_id: initialData?.client_id ?? 0,
     type_compteur: initialData?.type_compteur || "BT",
     configuration_compteur: initialData?.configuration_compteur || "2 fils",
     amperage: initialData?.amperage || 20,
@@ -56,6 +64,12 @@ export function InstallationForm({
   const [photoPreview, setPhotoPreview] = useState<{ [key: string]: string[] }>(
     {}
   );
+
+  // Camera state
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraTarget, setCameraTarget] = useState<PhotoField | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const handleInputChange = (field: keyof InstallationFormType, value: any) => {
     setFormData((prev) => ({
@@ -112,7 +126,72 @@ export function InstallationForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Sécurité: éviter un envoi sans client
+    if (!formData.client_id || formData.client_id === 0) {
+      alert("Veuillez sélectionner un client avant de créer l'installation.");
+      return;
+    }
     onSubmit(formData);
+  };
+
+  const startCamera = async (field: PhotoField) => {
+    try {
+      setCameraTarget(field);
+      setCameraOpen(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch (err) {
+      // Optionally, we could add a toast here
+      setCameraOpen(false);
+      setCameraTarget(null);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const capturePhoto = async () => {
+    if (!videoRef.current || !cameraTarget) return;
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob: Blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b as Blob), "image/jpeg", 0.9));
+    const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" });
+
+    // Update form data with new file
+    setFormData((prev) => ({
+      ...prev,
+      [cameraTarget]: [
+        ...((prev[cameraTarget] as File[]) || []),
+        file,
+      ],
+    }));
+
+    // Update preview
+    const url = URL.createObjectURL(file);
+    setPhotoPreview((prev) => ({
+      ...prev,
+      [cameraTarget]: [ ...(prev[cameraTarget] || []), url ],
+    }));
+
+    // Close camera
+    stopCamera();
+    setCameraOpen(false);
+    setCameraTarget(null);
   };
 
   const PhotoUploadSection = ({
@@ -137,6 +216,7 @@ export function InstallationForm({
           type="file"
           multiple
           accept="image/*"
+          capture="environment"
           onChange={(e) => handleFileChange(e.target.files, fieldName)}
           className="hidden"
           id={`upload-${fieldName}`}
@@ -151,11 +231,25 @@ export function InstallationForm({
           </span>
           <span className="text-xs text-gray-400">PNG, JPG jusqu'à 10MB</span>
         </label>
+        <div className="mt-3 flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() => startCamera(fieldName as PhotoField)}
+          >
+            <Camera className="h-4 w-4" />
+            Prendre une photo
+          </Button>
+        </div>
       </div>
 
-      {photoPreview[fieldName] && photoPreview[fieldName].length > 0 && (
+      {(photoPreview[fieldName]?.length || (formData[fieldName as keyof InstallationFormType] as File[])?.length) ? (
         <div className="grid grid-cols-3 gap-2">
-          {photoPreview[fieldName].map((preview, index) => (
+          {(photoPreview[fieldName] && photoPreview[fieldName].length > 0
+            ? photoPreview[fieldName]
+            : ((formData[fieldName as keyof InstallationFormType] as File[]) || []).map((file) => URL.createObjectURL(file))
+          ).map((preview, index) => (
             <div key={index} className="relative group">
               <img
                 src={preview}
@@ -172,12 +266,42 @@ export function InstallationForm({
             </div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <Dialog open={cameraOpen} onOpenChange={(open) => {
+        if (!open) {
+          stopCamera();
+          setCameraOpen(false);
+          setCameraTarget(null);
+        } else {
+          setCameraOpen(true);
+        }
+      }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Caméra</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <video ref={videoRef} className="w-full rounded bg-black" autoPlay playsInline />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => {
+                stopCamera();
+                setCameraOpen(false);
+                setCameraTarget(null);
+              }}>
+                Fermer
+              </Button>
+              <Button type="button" onClick={capturePhoto} className="flex items-center gap-2">
+                <Camera className="h-4 w-4" /> Capturer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Informations générales */}
       <Card>
         <CardHeader>
@@ -199,7 +323,6 @@ export function InstallationForm({
                 <SelectContent>
                   <SelectItem value="BT">BT (Basse Tension)</SelectItem>
                   <SelectItem value="MT">MT (Moyenne Tension)</SelectItem>
-                  <SelectItem value="HT">HT (Haute Tension)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

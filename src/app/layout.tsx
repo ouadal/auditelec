@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'EnerAudit Dashboard',
+  title: 'Medlight Dashboard',
   description: 'Suivi de l\'audit électrique en temps réel',
 };
 
