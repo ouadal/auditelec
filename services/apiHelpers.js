@@ -98,8 +98,12 @@ const apiHelpers = {
 
     create: async (data) => {
       await getCsrfCookie();
-      // Si des photos sont présentes, utiliser FormData
-      if (data.photo1 || data.photo2 || data.photo3) {
+      // Si des photos sont présentes (fichiers), utiliser FormData
+      const hasRealPhotos = [data.photo1, data.photo2, data.photo3].some(photo => 
+        photo && typeof photo === 'object' && 'type' in photo && photo.type?.startsWith('image/')
+      );
+      
+      if (hasRealPhotos) {
         const formData = new FormData();
         // Ajouter les données de base
         Object.keys(data).forEach(key => {
@@ -107,10 +111,10 @@ const apiHelpers = {
             formData.append(key, data[key]);
           }
         });
-        // Ajouter les photos
-        if (data.photo1) formData.append('photo[]', data.photo1);
-        if (data.photo2) formData.append('photo[]', data.photo2);
-        if (data.photo3) formData.append('photo[]', data.photo3);
+        // Ajouter uniquement les vraies photos (fichiers) comme tableau
+        if (data.photo1 && typeof data.photo1 === 'object' && 'type' in data.photo1) formData.append('photo[]', data.photo1);
+        if (data.photo2 && typeof data.photo2 === 'object' && 'type' in data.photo2) formData.append('photo[]', data.photo2);
+        if (data.photo3 && typeof data.photo3 === 'object' && 'type' in data.photo3) formData.append('photo[]', data.photo3);
         
         return api.post("/equipements", formData, {
           headers: {
@@ -123,8 +127,12 @@ const apiHelpers = {
 
     update: async (id, data) => {
       await getCsrfCookie();
-      // Si des photos sont présentes, utiliser FormData
-      if (data.photo1 || data.photo2 || data.photo3) {
+      // Si des photos sont présentes (fichiers), utiliser FormData
+      const hasRealPhotos = [data.photo1, data.photo2, data.photo3].some(photo => 
+        photo && typeof photo === 'object' && 'type' in photo && photo.type?.startsWith('image/')
+      );
+      
+      if (hasRealPhotos) {
         const formData = new FormData();
         // Ajouter les données de base
         Object.keys(data).forEach(key => {
@@ -132,10 +140,10 @@ const apiHelpers = {
             formData.append(key, data[key]);
           }
         });
-        // Ajouter les photos
-        if (data.photo1) formData.append('photo[]', data.photo1);
-        if (data.photo2) formData.append('photo[]', data.photo2);
-        if (data.photo3) formData.append('photo[]', data.photo3);
+        // Ajouter uniquement les vraies photos (fichiers) comme tableau
+        if (data.photo1 && typeof data.photo1 === 'object' && 'type' in data.photo1) formData.append('photo[]', data.photo1);
+        if (data.photo2 && typeof data.photo2 === 'object' && 'type' in data.photo2) formData.append('photo[]', data.photo2);
+        if (data.photo3 && typeof data.photo3 === 'object' && 'type' in data.photo3) formData.append('photo[]', data.photo3);
         
         return api.put(`/equipements/${id}`, formData, {
           headers: {

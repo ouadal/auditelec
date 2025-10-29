@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -37,12 +38,11 @@ import {
   Trash2,
   Eye,
   Zap,
+  Camera,
+  ImageIcon,
+  Upload,
   Save,
   X,
-  Building,
-  MapPin,
-  Image as ImageIcon,
-  Upload,
 } from "lucide-react";
 
 interface Equipement {
@@ -72,6 +72,13 @@ interface Equipement {
   samedi_nocturne?: number;
   dimanche_diurne?: number;
   dimanche_nocturne?: number;
+  // Temps moyens
+  temps_diurne_journalier?: number;
+  temps_nocturne_journalier?: number;
+  temps_diurne_semaine?: number;
+  temps_nocturne_semaine?: number;
+  temps_diurne_weekend?: number;
+  temps_nocturne_weekend?: number;
   photo1?: string;
   photo2?: string;
   photo3?: string;
@@ -167,10 +174,144 @@ export default function EquipementsPage() {
     samedi_nocturne: 0,
     dimanche_diurne: 0,
     dimanche_nocturne: 0,
+    // Temps moyens
+    temps_diurne_journalier: 0,
+    temps_nocturne_journalier: 0,
+    temps_diurne_semaine: 0,
+    temps_nocturne_semaine: 0,
+    temps_diurne_weekend: 0,
+    temps_nocturne_weekend: 0,
   });
 
   // État pour la prévisualisation des photos
   const [photoPreviews, setPhotoPreviews] = useState<string[]>(["", "", ""]);
+
+  // États pour la caméra
+  const [showCamera, setShowCamera] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number>(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Effet pour surveiller les changements de showCamera
+  useEffect(() => {
+    console.log('showCamera a changé:', showCamera);
+  }, [showCamera]);
+
+  // Ouvrir la caméra
+  const handleCameraCapture = async (photoIndex: number) => {
+    try {
+      console.log('handleCameraCapture appelé avec index:', photoIndex);
+      
+      // Vérifier si mediaDevices est disponible
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('La capture de photo n\'est pas supportée sur cet appareil');
+      }
+
+      console.log('mediaDevices disponible, énumération des caméras...');
+      
+      // Récupérer la liste des caméras disponibles
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      
+      console.log('Caméras disponibles:', videoDevices);
+
+      // Définir les contraintes de base
+      let constraints: MediaStreamConstraints = {
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'environment' // Préférer la caméra arrière
+        },
+        audio: false
+      };
+
+      console.log('Contraintes initiales:', constraints);
+
+      // Si on est sur mobile et qu'il y a plusieurs caméras, essayer d'utiliser la caméra arrière
+      if (videoDevices.length > 1 && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        const rearCamera = videoDevices.find(device => 
+          /(back|rear|environment|arrière)/i.test(device.label)
+        );
+        if (rearCamera) {
+          constraints.video = {
+            ...constraints.video as MediaTrackConstraints,
+            deviceId: { exact: rearCamera.deviceId }
+          };
+          console.log('Caméra arrière trouvée, nouvelles contraintes:', constraints);
+        }
+      }
+
+      console.log('Demande d\'accès à la caméra...');
+      
+      // Demander l'accès à la caméra avec les contraintes
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      console.log('Flux vidéo obtenu:', stream);
+      
+      if (videoRef.current) {
+        console.log('Affectation du flux à la vidéo...');
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setCurrentPhotoIndex(photoIndex);
+        setShowCamera(true);
+        console.log('Modal caméra ouverte, showCamera:', true);
+      } else {
+        console.log('Erreur: videoRef.current est null');
+      }
+    } catch (error) {
+      console.error('Erreur d\'accès à la caméra:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'accéder à la caméra. Vérifiez que vous avez autorisé l'accès à la caméra dans votre navigateur.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Prendre une photo
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `photo${currentPhotoIndex + 1}.jpg`, { type: 'image/jpeg' });
+            const photoKey = `photo${currentPhotoIndex + 1}` as keyof typeof formData;
+            
+            // Créer une prévisualisation
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64String = reader.result as string;
+              const newPreviews = [...photoPreviews];
+              newPreviews[currentPhotoIndex] = base64String;
+              setPhotoPreviews(newPreviews);
+              setFormData({ ...formData, [photoKey]: file });
+            };
+            reader.readAsDataURL(blob);
+          }
+        }, 'image/jpeg', 0.8);
+
+        closeCamera();
+      }
+    }
+  };
+
+  // Fermer la caméra
+  const closeCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+  };
 
   // Charger les données
   const loadData = async () => {
@@ -260,6 +401,13 @@ export default function EquipementsPage() {
       samedi_nocturne: 0,
       dimanche_diurne: 0,
       dimanche_nocturne: 0,
+      // Temps moyens
+      temps_diurne_journalier: 0,
+      temps_nocturne_journalier: 0,
+      temps_diurne_semaine: 0,
+      temps_nocturne_semaine: 0,
+      temps_diurne_weekend: 0,
+      temps_nocturne_weekend: 0,
     });
     setPhotoPreviews(["", "", ""]);
     setEditingId(null);
@@ -325,30 +473,7 @@ export default function EquipementsPage() {
     setFormData({ ...formData, [photoKey]: "" });
   };
 
-  // Gérer la capture de photo par caméra
-  const handleCameraCapture = async (photoIndex: number, photoData: string) => {
-    // Convertir le base64 en Blob
-    const base64Data = photoData.split(',')[1];
-    const byteCharacters = atob(base64Data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: 'image/jpeg' });
-    
-    // Créer un fichier à partir du Blob
-    const file = new File([blob], `camera_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-
-    // Mettre à jour la prévisualisation
-    const newPreviews = [...photoPreviews];
-    newPreviews[photoIndex] = photoData;
-    setPhotoPreviews(newPreviews);
-
-    // Mettre à jour le formulaire avec le fichier
-    const photoKey = `photo${photoIndex + 1}` as "photo1" | "photo2" | "photo3";
-    setFormData({ ...formData, [photoKey]: file });
-  };
+  // Supprimer la deuxième définition de handleCameraCapture car elle est déjà définie plus haut
 
   // Modifier
   const handleEdit = async (equipement: Equipement) => {
@@ -376,21 +501,28 @@ export default function EquipementsPage() {
         photo1: photos[0] || "",
         photo2: photos[1] || "",
         photo3: photos[2] || "",
-        // Temps détaillés par jour
-        lundi_diurne: equipement.lundi_diurne || 0,
-        lundi_nocturne: equipement.lundi_nocturne || 0,
-        mardi_diurne: equipement.mardi_diurne || 0,
-        mardi_nocturne: equipement.mardi_nocturne || 0,
-        mercredi_diurne: equipement.mercredi_diurne || 0,
-        mercredi_nocturne: equipement.mercredi_nocturne || 0,
-        jeudi_diurne: equipement.jeudi_diurne || 0,
-        jeudi_nocturne: equipement.jeudi_nocturne || 0,
-        vendredi_diurne: equipement.vendredi_diurne || 0,
-        vendredi_nocturne: equipement.vendredi_nocturne || 0,
-        samedi_diurne: equipement.samedi_diurne || 0,
-        samedi_nocturne: equipement.samedi_nocturne || 0,
-        dimanche_diurne: equipement.dimanche_diurne || 0,
-        dimanche_nocturne: equipement.dimanche_nocturne || 0,
+        // Temps détaillés par jour (utiliser les moyennes pour remplir les champs)
+        lundi_diurne: equipement.temps_diurne_semaine || 0,
+        lundi_nocturne: equipement.temps_nocturne_semaine || 0,
+        mardi_diurne: equipement.temps_diurne_semaine || 0,
+        mardi_nocturne: equipement.temps_nocturne_semaine || 0,
+        mercredi_diurne: equipement.temps_diurne_semaine || 0,
+        mercredi_nocturne: equipement.temps_nocturne_semaine || 0,
+        jeudi_diurne: equipement.temps_diurne_semaine || 0,
+        jeudi_nocturne: equipement.temps_nocturne_semaine || 0,
+        vendredi_diurne: equipement.temps_diurne_semaine || 0,
+        vendredi_nocturne: equipement.temps_nocturne_semaine || 0,
+        samedi_diurne: equipement.temps_diurne_weekend || 0,
+        samedi_nocturne: equipement.temps_nocturne_weekend || 0,
+        dimanche_diurne: equipement.temps_diurne_weekend || 0,
+        dimanche_nocturne: equipement.temps_nocturne_weekend || 0,
+        // Temps moyens (conserver les valeurs null/undefined)
+        temps_diurne_journalier: equipement.temps_diurne_journalier,
+        temps_nocturne_journalier: equipement.temps_nocturne_journalier,
+        temps_diurne_semaine: equipement.temps_diurne_semaine,
+        temps_nocturne_semaine: equipement.temps_nocturne_semaine,
+        temps_diurne_weekend: equipement.temps_diurne_weekend,
+        temps_nocturne_weekend: equipement.temps_nocturne_weekend,
       });
 
       // Mettre à jour les prévisualisations avec les URLs des photos existantes
@@ -412,86 +544,132 @@ export default function EquipementsPage() {
     }
   };
 
+  // Fonction pour calculer la moyenne des temps d'utilisation
+  const calculerMoyenne = (valeurs: (number | undefined)[]) => {
+    const valeursValides = valeurs
+      .map(v => typeof v === 'number' ? v : 0)
+      .filter(v => !isNaN(v));
+    return valeursValides.length > 0 
+      ? valeursValides.reduce((a, b) => a + b, 0) / valeursValides.length 
+      : 0;
+  };
+
   // Sauvegarder
   const handleSave = async () => {
-    if (
-      !formData.nom_equipement ||
-      formData.piece_id === 0 ||
-      formData.type_equipement_id === 0
-    ) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs obligatoires",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
     try {
-      // Créer un FormData pour envoyer les fichiers
-      const formDataToSend = new FormData();
+      // Filtrer pour obtenir uniquement les vraies nouvelles photos (fichiers), pas les URLs existantes
+      const newPhotos = [formData.photo1, formData.photo2, formData.photo3]
+        .filter(photo => {
+          // Accepter uniquement les fichiers image (pas les URLs)
+          return photo && typeof photo === 'object' && 'type' in photo && photo.type?.startsWith('image/');
+        });
       
-      // Ajouter les champs de base
-      formDataToSend.append('nom_equipement', formData.nom_equipement);
-      formDataToSend.append('piece_id', formData.piece_id.toString());
-      formDataToSend.append('type_equipement_id', formData.type_equipement_id.toString());
-      formDataToSend.append('nombre', formData.nombre.toString());
-      formDataToSend.append('valeur_mesuree', formData.valeur_mesuree.toString());
-      formDataToSend.append('type_valeur', formData.type_valeur);
-      formDataToSend.append('tension', (formData.tension || 0).toString());
-      formDataToSend.append('courant', (formData.courant || 0).toString());
-      formDataToSend.append('facteur_puissance', formData.facteur_puissance.toString());
-      formDataToSend.append('heures_utilisation_jour', formData.heures_utilisation_jour.toString());
-      
-      // Ajouter les temps détaillés par jour
-      formDataToSend.append('lundi_diurne', formData.lundi_diurne.toString());
-      formDataToSend.append('lundi_nocturne', formData.lundi_nocturne.toString());
-      formDataToSend.append('mardi_diurne', formData.mardi_diurne.toString());
-      formDataToSend.append('mardi_nocturne', formData.mardi_nocturne.toString());
-      formDataToSend.append('mercredi_diurne', formData.mercredi_diurne.toString());
-      formDataToSend.append('mercredi_nocturne', formData.mercredi_nocturne.toString());
-      formDataToSend.append('jeudi_diurne', formData.jeudi_diurne.toString());
-      formDataToSend.append('jeudi_nocturne', formData.jeudi_nocturne.toString());
-      formDataToSend.append('vendredi_diurne', formData.vendredi_diurne.toString());
-      formDataToSend.append('vendredi_nocturne', formData.vendredi_nocturne.toString());
-      formDataToSend.append('samedi_diurne', formData.samedi_diurne.toString());
-      formDataToSend.append('samedi_nocturne', formData.samedi_nocturne.toString());
-      formDataToSend.append('dimanche_diurne', formData.dimanche_diurne.toString());
-      formDataToSend.append('dimanche_nocturne', formData.dimanche_nocturne.toString());
+      // Si on modifie uniquement les photos, on envoie les photos et les valeurs existantes des temps d'utilisation
+      if (newPhotos.length > 0 && editingId) {
+        const data = new FormData();
+        
+        // Ajouter les nouvelles photos (fichiers seulement)
+        newPhotos.forEach((photo) => {
+          data.append('photo[]', photo);
+        });
 
-      // Ajouter les photos si elles existent
-      const photos = [formData.photo1, formData.photo2, formData.photo3].filter(Boolean);
-      photos.forEach((photo, index) => {
-        if (photo instanceof File) {
-          formDataToSend.append('photo[]', photo);
-        } else if (typeof photo === 'string' && photo.startsWith('http')) {
-          // Si c'est une URL existante, on ne l'envoie pas car elle existe déjà sur le serveur
-          console.log(`Photo ${index + 1} est une URL existante:`, photo);
+        // Ajouter les valeurs existantes des temps d'utilisation seulement si elles ne sont pas vides
+        if (formData.temps_diurne_journalier) data.append('temps_diurne_journalier', formData.temps_diurne_journalier.toString());
+        if (formData.temps_nocturne_journalier) data.append('temps_nocturne_journalier', formData.temps_nocturne_journalier.toString());
+        if (formData.temps_diurne_semaine) data.append('temps_diurne_semaine', formData.temps_diurne_semaine.toString());
+        if (formData.temps_nocturne_semaine) data.append('temps_nocturne_semaine', formData.temps_nocturne_semaine.toString());
+        if (formData.temps_diurne_weekend) data.append('temps_diurne_weekend', formData.temps_diurne_weekend.toString());
+        if (formData.temps_nocturne_weekend) data.append('temps_nocturne_weekend', formData.temps_nocturne_weekend.toString());
+        
+        await apiHelpers.equipements.update(editingId, data);
+        toast({
+          title: "Succès",
+          description: "Photos modifiées avec succès",
+        });
+        
+        await loadData();
+        setShowForm(false);
+        resetForm();
+        return;
+      }
+
+      // Sinon, on envoie toutes les données
+      // Préparer les données pour l'envoi
+      const data: any = {
+        nom_equipement: formData.nom_equipement || '',
+        piece_id: formData.piece_id?.toString() || '0',
+        type_equipement_id: formData.type_equipement_id?.toString() || '0',
+        nombre: formData.nombre?.toString() || '1',
+        valeur_mesuree: formData.valeur_mesuree?.toString() || '0',
+        type_valeur: formData.type_valeur || 'puissance',
+        tension: formData.tension?.toString() || '0',
+        courant: formData.courant?.toString() || '0',
+        facteur_puissance: formData.facteur_puissance?.toString() || '0',
+        heures_utilisation_jour: formData.heures_utilisation_jour?.toString() || '0',
+      };
+
+      // Calculer les temps d'utilisation uniquement si nécessaire
+      const tempsDiurneSemaine = calculerMoyenne([
+        formData.lundi_diurne,
+        formData.mardi_diurne,
+        formData.mercredi_diurne,
+        formData.jeudi_diurne,
+        formData.vendredi_diurne,
+      ]);
+
+      const tempsNocturneSemaine = calculerMoyenne([
+        formData.lundi_nocturne,
+        formData.mardi_nocturne,
+        formData.mercredi_nocturne,
+        formData.jeudi_nocturne,
+        formData.vendredi_nocturne,
+      ]);
+
+      const tempsDiurneJournalier = (tempsDiurneSemaine * 5 + (formData.samedi_diurne || 0) * 2) / 7;
+      const tempsNocturneJournalier = (tempsNocturneSemaine * 5 + (formData.samedi_nocturne || 0) * 2) / 7;
+
+      data.temps_diurne_journalier = tempsDiurneJournalier.toString();
+      data.temps_nocturne_journalier = tempsNocturneJournalier.toString();
+      data.temps_diurne_semaine = tempsDiurneSemaine.toString();
+      data.temps_nocturne_semaine = tempsNocturneSemaine.toString();
+      data.temps_diurne_weekend = (formData.samedi_diurne || 0).toString();
+      data.temps_nocturne_weekend = (formData.samedi_nocturne || 0).toString();
+
+      // Ajouter les photos seulement si elles existent (fichiers)
+      if (newPhotos.length > 0) {
+        // Préparer les données pour apiHelpers.js qui attend un objet avec photo1, photo2, photo3
+        const dataWithPhotos = { ...data };
+        
+        // Ajouter les nouvelles photos comme photo1, photo2, photo3
+        newPhotos.forEach((photo, index) => {
+          dataWithPhotos[`photo${index + 1}`] = photo;
+        });
+
+        // Envoyer les données avec photos
+        if (editingId) {
+          await apiHelpers.equipements.update(editingId, dataWithPhotos);
+        } else {
+          await apiHelpers.equipements.create(dataWithPhotos);
         }
-      });
-
-      console.log("FormData à envoyer:", Object.fromEntries(formDataToSend.entries()));
-
-      if (editingId) {
-        await apiHelpers.equipements.update(editingId, formDataToSend);
-        toast({ title: "Succès", description: "Équipement modifié" });
       } else {
-        await apiHelpers.equipements.create(formDataToSend);
-        toast({ title: "Succès", description: "Équipement créé" });
+        // Envoyer les données sans photos (objet simple)
+        if (editingId) {
+          await apiHelpers.equipements.update(editingId, data);
+        } else {
+          await apiHelpers.equipements.create(data);
+        }
       }
 
       await loadData();
+      setShowForm(false);
       resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de la sauvegarde:", error);
       toast({
         title: "Erreur",
         description: "Erreur lors de la sauvegarde",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -821,37 +999,115 @@ export default function EquipementsPage() {
                     <Label className="text-sm text-muted-foreground">
                       Photo {index + 1}
                     </Label>
-                    <div className="space-y-2">
+                    <div className="flex gap-2">
                       <Input
                         type="file"
                         accept="image/*"
                         onChange={(e) => handlePhotoChange(e, index)}
-                        className="cursor-pointer text-xs"
+                        className="cursor-pointer text-xs flex-1"
                       />
-                      {photoPreviews[index] ? (
-                        <div className="relative w-full h-40 border rounded-lg overflow-hidden bg-muted group">
-                          <img
-                            src={photoPreviews[index]}
-                            alt={`Prévisualisation ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => removePhoto(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="w-full h-40 border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-muted/50 text-muted-foreground">
-                          <ImageIcon className="h-8 w-8 mb-2" />
-                          <span className="text-xs">Aucune image</span>
-                        </div>
-                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => {
+                          console.log('Bouton caméra cliqué, index:', index);
+                          setCurrentPhotoIndex(index);
+                          setShowCamera(true);
+                          handleCameraCapture(index);
+                        }}
+                        title="Prendre une photo avec la caméra"
+                      >
+                        <Camera className="h-4 w-4" />
+                      </Button>
+                      <Dialog open={showCamera} onOpenChange={(open) => {
+                        console.log('onOpenChange appelé avec:', open);
+                        if (!open) {
+                          closeCamera();
+                        }
+                      }}>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-xl">
+                              <Camera className="h-6 w-6" />
+                              Prendre une photo
+                            </DialogTitle>
+                            <div className="mt-4 space-y-2 bg-muted p-4 rounded-lg">
+                              <p className="font-medium text-base">Instructions :</p>
+                              <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                                <li>Positionnez l'équipement dans le cadre</li>
+                                <li>Cliquez sur le bouton vert "Capturer la photo" ci-dessous</li>
+                              </ol>
+                            </div>
+                          </DialogHeader>
+                          
+                          <div className="relative aspect-video bg-black rounded-lg overflow-hidden mt-4">
+                            <div className="absolute inset-0 flex items-center justify-center z-10">
+                              <LoadingSpinner size="lg" />
+                            </div>
+                            <video
+                              ref={videoRef}
+                              autoPlay
+                              playsInline
+                              muted
+                              onLoadedMetadata={() => console.log('Vidéo chargée')}
+                              className="w-full h-full object-contain"
+                            />
+                            <canvas ref={canvasRef} className="hidden" />
+                          </div>
+
+                          <DialogFooter className="flex gap-4 mt-6">
+                            <Button 
+                              type="button" 
+                              variant="secondary" 
+                              onClick={() => {
+                                console.log('Bouton Annuler cliqué');
+                                closeCamera();
+                              }} 
+                              className="flex-1 py-6 text-lg"
+                            >
+                              <X className="h-5 w-5 mr-2" />
+                              Annuler
+                            </Button>
+                            <Button 
+                              type="button" 
+                              onClick={() => {
+                                console.log('Bouton Capturer cliqué');
+                                capturePhoto();
+                              }} 
+                              className="flex-1 py-6 text-lg bg-green-600 hover:bg-green-700"
+                            >
+                              <Camera className="h-5 w-5 mr-2" />
+                              Capturer la photo
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </div>
+                    {photoPreviews[index] ? (
+                      <div className="relative w-full h-40 border rounded-lg overflow-hidden bg-muted group">
+                        <img
+                          src={photoPreviews[index]}
+                          alt={`Prévisualisation ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removePhoto(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="w-full h-40 border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-muted/50 text-muted-foreground">
+                        <ImageIcon className="h-8 w-8 mb-2" />
+                        <span className="text-xs">Aucune image</span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1423,6 +1679,7 @@ export default function EquipementsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
