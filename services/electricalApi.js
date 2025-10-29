@@ -496,3 +496,172 @@ export const installationService = {
     }
   }
 };
+
+// Services pour les Équipements
+export const equipementService = {
+  // Récupérer tous les équipements
+  getAll: async () => {
+    try {
+      const response = await api.get('/equipements');
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la récupération des équipements:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer un équipement spécifique
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/equipements/${id}`);
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la récupération de l\'équipement:', error);
+      throw error;
+    }
+  },
+
+  // Créer un nouvel équipement
+  create: async (equipementData) => {
+    try {
+      // Si pas de photos, envoyer en JSON
+      if (!equipementData.photos || equipementData.photos.length === 0) {
+        const jsonData = { ...equipementData };
+        delete jsonData.photos;
+        const response = await api.post('/equipements', jsonData);
+        return response.data;
+      }
+      
+      // Sinon utiliser FormData pour les photos
+      const formData = new FormData();
+      
+      // Ajouter les données de base
+      Object.keys(equipementData).forEach(key => {
+        if (key !== 'photos' && equipementData[key] !== null && equipementData[key] !== undefined) {
+          formData.append(key, equipementData[key]);
+        }
+      });
+
+      // Ajouter les photos
+      equipementData.photos.forEach((photo, index) => {
+        formData.append(`photo[${index}]`, photo);
+      });
+
+      const response = await api.post('/equipements', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la création de l\'équipement:', error);
+      if (error.response) {
+        console.warn('Réponse du serveur:', error.response.data);
+      }
+      throw error;
+    }
+  },
+
+  // Mettre à jour un équipement
+  update: async (id, equipementData) => {
+    try {
+      // Si pas de nouvelles photos, utiliser JSON avec PUT
+      if (!equipementData.photos || equipementData.photos.length === 0) {
+        const jsonData = { ...equipementData };
+        delete jsonData.photos;
+        delete jsonData.id;
+        const response = await api.put(`/equipements/${id}`, jsonData);
+        return response.data;
+      }
+      
+      // Sinon utiliser FormData pour les photos
+      const formData = new FormData();
+      formData.append('_method', 'PUT');
+      
+      // Ajouter les données de base
+      Object.keys(equipementData).forEach(key => {
+        if (key !== 'photos' && key !== 'id' && equipementData[key] !== null && equipementData[key] !== undefined) {
+          formData.append(key, equipementData[key]);
+        }
+      });
+
+      // Ajouter les nouvelles photos
+      equipementData.photos.forEach((photo, index) => {
+        formData.append(`photo[${index}]`, photo);
+      });
+
+      const response = await api.post(`/equipements/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la mise à jour de l\'équipement:', error);
+      if (error.response) {
+        console.warn('Réponse du serveur:', error.response.data);
+      }
+      throw error;
+    }
+  },
+
+  // Supprimer un équipement
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/equipements/${id}`);
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la suppression de l\'équipement:', error);
+      throw error;
+    }
+  },
+
+  // Ajouter des photos à un équipement existant
+  uploadPhotos: async (id, photos) => {
+    try {
+      const formData = new FormData();
+      photos.forEach((photo, index) => {
+        formData.append(`photo[${index}]`, photo);
+      });
+
+      const response = await api.post(`/equipements/${id}/photos`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de l\'upload des photos:', error);
+      throw error;
+    }
+  },
+
+  // Ajouter des photos depuis la caméra
+  addCameraPhotos: async (id, photosBase64) => {
+    try {
+      const response = await api.post(`/equipements/${id}/camera-photos`, {
+        photos: photosBase64
+      });
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de l\'ajout des photos de la caméra:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer les détails énergétiques
+  getDetailsEnergetiques: async (id) => {
+    try {
+      const response = await api.get(`/equipements/${id}/details-energetiques`);
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la récupération des détails énergétiques:', error);
+      throw error;
+    }
+  },
+
+  // Calculer l'énergie
+  calculerEnergie: async (id) => {
+    try {
+      const response = await api.post(`/equipements/${id}/calculer-energie`);
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors du calcul de l\'énergie:', error);
+      throw error;
+    }
+  }
+};

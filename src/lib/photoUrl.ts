@@ -15,7 +15,7 @@ export const resolvePhotoUrl = (photo: string) => {
     .replace(/^\/+/, "");
 
   // Determine origin from NEXT_PUBLIC_API_URL or fallback
-  let origin = "http://127.0.0.1:8000";
+  let origin = "http://localhost:8000";
   try {
     const envUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
     const u = new URL(envUrl);

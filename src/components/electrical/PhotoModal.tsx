@@ -13,7 +13,7 @@ interface PhotoModalProps {
 
 export function PhotoModal({ isOpen, onClose, installation, onPhotoClick }: PhotoModalProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-4xl">
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <div className="space-y-8 p-6">
         <h2 className="text-2xl font-semibold">Photos de l'installation</h2>
 

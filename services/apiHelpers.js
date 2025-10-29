@@ -98,23 +98,77 @@ const apiHelpers = {
 
     create: async (data) => {
       await getCsrfCookie();
+      // Si des photos sont présentes, utiliser FormData
+      if (data.photo1 || data.photo2 || data.photo3) {
+        const formData = new FormData();
+        // Ajouter les données de base
+        Object.keys(data).forEach(key => {
+          if (!key.startsWith('photo')) {
+            formData.append(key, data[key]);
+          }
+        });
+        // Ajouter les photos
+        if (data.photo1) formData.append('photo[]', data.photo1);
+        if (data.photo2) formData.append('photo[]', data.photo2);
+        if (data.photo3) formData.append('photo[]', data.photo3);
+        
+        return api.post("/equipements", formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      }
       return api.post("/equipements", data);
     },
+
     update: async (id, data) => {
       await getCsrfCookie();
+      // Si des photos sont présentes, utiliser FormData
+      if (data.photo1 || data.photo2 || data.photo3) {
+        const formData = new FormData();
+        // Ajouter les données de base
+        Object.keys(data).forEach(key => {
+          if (!key.startsWith('photo')) {
+            formData.append(key, data[key]);
+          }
+        });
+        // Ajouter les photos
+        if (data.photo1) formData.append('photo[]', data.photo1);
+        if (data.photo2) formData.append('photo[]', data.photo2);
+        if (data.photo3) formData.append('photo[]', data.photo3);
+        
+        return api.put(`/equipements/${id}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      }
       return api.put(`/equipements/${id}`, data);
     },
+
     delete: async (id) => {
       await getCsrfCookie();
       return api.delete(`/equipements/${id}`);
     },
-    uploadPhoto: async (id, formData) => {
+
+    // Upload de photos (fichiers)
+    uploadPhotos: async (id, photos) => {
       await getCsrfCookie();
+      const formData = new FormData();
+      photos.forEach(photo => {
+        if (photo) formData.append('photo[]', photo);
+      });
       return api.post(`/equipements/${id}/photos`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
+    },
+
+    // Upload de photos capturées par caméra (base64)
+    uploadCameraPhotos: async (id, photos) => {
+      await getCsrfCookie();
+      return api.post(`/equipements/${id}/photos-camera`, { photos });
     },
 
     calculerEnergie: (id) => api.post(`/equipements/${id}/calculer-energie`),

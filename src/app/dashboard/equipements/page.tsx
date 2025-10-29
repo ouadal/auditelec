@@ -83,11 +83,17 @@ interface Equipement {
 }
 
 interface Piece {
+  batiment_nom: any;
+  nom_batiment: any;
+  name: string;
   id: number;
   nom_piece: string;
   level: string;
   manager: string;
-  batiment?: { nom_batiment: string };
+  batiment?: {
+    id?: number;
+    nom_batiment: string;
+  };
   equipements?: Array<{
     id: number;
     nom_equipement: string;
@@ -301,11 +307,9 @@ export default function EquipementsPage() {
         newPreviews[photoIndex] = base64String;
         setPhotoPreviews(newPreviews);
 
-        const photoKey = `photo${photoIndex + 1}` as
-          | "photo1"
-          | "photo2"
-          | "photo3";
-        setFormData({ ...formData, [photoKey]: base64String });
+        // Stocker le fichier dans formData
+        const photoKey = `photo${photoIndex + 1}` as keyof typeof formData;
+        setFormData({ ...formData, [photoKey]: file });
       };
       reader.readAsDataURL(file);
     }
@@ -321,45 +325,91 @@ export default function EquipementsPage() {
     setFormData({ ...formData, [photoKey]: "" });
   };
 
+  // Gérer la capture de photo par caméra
+  const handleCameraCapture = async (photoIndex: number, photoData: string) => {
+    // Convertir le base64 en Blob
+    const base64Data = photoData.split(',')[1];
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'image/jpeg' });
+    
+    // Créer un fichier à partir du Blob
+    const file = new File([blob], `camera_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+    // Mettre à jour la prévisualisation
+    const newPreviews = [...photoPreviews];
+    newPreviews[photoIndex] = photoData;
+    setPhotoPreviews(newPreviews);
+
+    // Mettre à jour le formulaire avec le fichier
+    const photoKey = `photo${photoIndex + 1}` as "photo1" | "photo2" | "photo3";
+    setFormData({ ...formData, [photoKey]: file });
+  };
+
   // Modifier
-  const handleEdit = (equipement: Equipement) => {
-    setFormData({
-      nom_equipement: equipement.nom_equipement,
-      piece_id: equipement.piece_id,
-      type_equipement_id: equipement.type_equipement_id,
-      nombre: equipement.nombre,
-      valeur_mesuree: equipement.valeur_mesuree,
-      type_valeur: equipement.type_valeur,
-      tension: equipement.tension || 0,
-      courant: equipement.courant || 0,
-      facteur_puissance: equipement.facteur_puissance,
-      heures_utilisation_jour: equipement.heures_utilisation_jour,
-      photo1: equipement.photo1 || "",
-      photo2: equipement.photo2 || "",
-      photo3: equipement.photo3 || "",
-      // Temps détaillés par jour
-      lundi_diurne: equipement.lundi_diurne || 0,
-      lundi_nocturne: equipement.lundi_nocturne || 0,
-      mardi_diurne: equipement.mardi_diurne || 0,
-      mardi_nocturne: equipement.mardi_nocturne || 0,
-      mercredi_diurne: equipement.mercredi_diurne || 0,
-      mercredi_nocturne: equipement.mercredi_nocturne || 0,
-      jeudi_diurne: equipement.jeudi_diurne || 0,
-      jeudi_nocturne: equipement.jeudi_nocturne || 0,
-      vendredi_diurne: equipement.vendredi_diurne || 0,
-      vendredi_nocturne: equipement.vendredi_nocturne || 0,
-      samedi_diurne: equipement.samedi_diurne || 0,
-      samedi_nocturne: equipement.samedi_nocturne || 0,
-      dimanche_diurne: equipement.dimanche_diurne || 0,
-      dimanche_nocturne: equipement.dimanche_nocturne || 0,
-    });
-    setPhotoPreviews([
-      equipement.photo1 || "",
-      equipement.photo2 || "",
-      equipement.photo3 || "",
-    ]);
-    setEditingId(equipement.id);
-    setShowForm(true);
+  const handleEdit = async (equipement: Equipement) => {
+    // Récupérer les détails complets de l'équipement pour avoir les URLs des photos
+    try {
+      const response = await apiHelpers.equipements.getById(equipement.id);
+      const equipementDetails = response.data.data;
+      console.log("Détails de l'équipement:", equipementDetails);
+
+      // Convertir le tableau de photos en photo1, photo2, photo3
+      const photos = equipementDetails.photos || [];
+      console.log("Photos de l'équipement:", photos);
+
+      setFormData({
+        nom_equipement: equipement.nom_equipement,
+        piece_id: equipement.piece_id,
+        type_equipement_id: equipement.type_equipement_id,
+        nombre: equipement.nombre,
+        valeur_mesuree: equipement.valeur_mesuree,
+        type_valeur: equipement.type_valeur,
+        tension: equipement.tension || 0,
+        courant: equipement.courant || 0,
+        facteur_puissance: equipement.facteur_puissance,
+        heures_utilisation_jour: equipement.heures_utilisation_jour,
+        photo1: photos[0] || "",
+        photo2: photos[1] || "",
+        photo3: photos[2] || "",
+        // Temps détaillés par jour
+        lundi_diurne: equipement.lundi_diurne || 0,
+        lundi_nocturne: equipement.lundi_nocturne || 0,
+        mardi_diurne: equipement.mardi_diurne || 0,
+        mardi_nocturne: equipement.mardi_nocturne || 0,
+        mercredi_diurne: equipement.mercredi_diurne || 0,
+        mercredi_nocturne: equipement.mercredi_nocturne || 0,
+        jeudi_diurne: equipement.jeudi_diurne || 0,
+        jeudi_nocturne: equipement.jeudi_nocturne || 0,
+        vendredi_diurne: equipement.vendredi_diurne || 0,
+        vendredi_nocturne: equipement.vendredi_nocturne || 0,
+        samedi_diurne: equipement.samedi_diurne || 0,
+        samedi_nocturne: equipement.samedi_nocturne || 0,
+        dimanche_diurne: equipement.dimanche_diurne || 0,
+        dimanche_nocturne: equipement.dimanche_nocturne || 0,
+      });
+
+      // Mettre à jour les prévisualisations avec les URLs des photos existantes
+      setPhotoPreviews([
+        photos[0] || "",
+        photos[1] || "",
+        photos[2] || "",
+      ]);
+
+      setEditingId(equipement.id);
+      setShowForm(true);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des détails:", error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la récupération des détails",
+        variant: "destructive",
+      });
+    }
   };
 
   // Sauvegarder
@@ -379,17 +429,62 @@ export default function EquipementsPage() {
 
     setLoading(true);
     try {
+      // Créer un FormData pour envoyer les fichiers
+      const formDataToSend = new FormData();
+      
+      // Ajouter les champs de base
+      formDataToSend.append('nom_equipement', formData.nom_equipement);
+      formDataToSend.append('piece_id', formData.piece_id.toString());
+      formDataToSend.append('type_equipement_id', formData.type_equipement_id.toString());
+      formDataToSend.append('nombre', formData.nombre.toString());
+      formDataToSend.append('valeur_mesuree', formData.valeur_mesuree.toString());
+      formDataToSend.append('type_valeur', formData.type_valeur);
+      formDataToSend.append('tension', (formData.tension || 0).toString());
+      formDataToSend.append('courant', (formData.courant || 0).toString());
+      formDataToSend.append('facteur_puissance', formData.facteur_puissance.toString());
+      formDataToSend.append('heures_utilisation_jour', formData.heures_utilisation_jour.toString());
+      
+      // Ajouter les temps détaillés par jour
+      formDataToSend.append('lundi_diurne', formData.lundi_diurne.toString());
+      formDataToSend.append('lundi_nocturne', formData.lundi_nocturne.toString());
+      formDataToSend.append('mardi_diurne', formData.mardi_diurne.toString());
+      formDataToSend.append('mardi_nocturne', formData.mardi_nocturne.toString());
+      formDataToSend.append('mercredi_diurne', formData.mercredi_diurne.toString());
+      formDataToSend.append('mercredi_nocturne', formData.mercredi_nocturne.toString());
+      formDataToSend.append('jeudi_diurne', formData.jeudi_diurne.toString());
+      formDataToSend.append('jeudi_nocturne', formData.jeudi_nocturne.toString());
+      formDataToSend.append('vendredi_diurne', formData.vendredi_diurne.toString());
+      formDataToSend.append('vendredi_nocturne', formData.vendredi_nocturne.toString());
+      formDataToSend.append('samedi_diurne', formData.samedi_diurne.toString());
+      formDataToSend.append('samedi_nocturne', formData.samedi_nocturne.toString());
+      formDataToSend.append('dimanche_diurne', formData.dimanche_diurne.toString());
+      formDataToSend.append('dimanche_nocturne', formData.dimanche_nocturne.toString());
+
+      // Ajouter les photos si elles existent
+      const photos = [formData.photo1, formData.photo2, formData.photo3].filter(Boolean);
+      photos.forEach((photo, index) => {
+        if (photo instanceof File) {
+          formDataToSend.append('photo[]', photo);
+        } else if (typeof photo === 'string' && photo.startsWith('http')) {
+          // Si c'est une URL existante, on ne l'envoie pas car elle existe déjà sur le serveur
+          console.log(`Photo ${index + 1} est une URL existante:`, photo);
+        }
+      });
+
+      console.log("FormData à envoyer:", Object.fromEntries(formDataToSend.entries()));
+
       if (editingId) {
-        await apiHelpers.equipements.update(editingId, formData);
+        await apiHelpers.equipements.update(editingId, formDataToSend);
         toast({ title: "Succès", description: "Équipement modifié" });
       } else {
-        await apiHelpers.equipements.create(formData);
+        await apiHelpers.equipements.create(formDataToSend);
         toast({ title: "Succès", description: "Équipement créé" });
       }
 
       await loadData();
       resetForm();
     } catch (error) {
+      console.error("Erreur lors de la sauvegarde:", error);
       toast({
         title: "Erreur",
         description: "Erreur lors de la sauvegarde",
