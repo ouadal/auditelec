@@ -31,102 +31,101 @@ export function InstallationCard({
 
   return (
     <Card
-      className={`cursor-pointer transition-all ${
+      className={`relative cursor-pointer transition-all rounded-lg ${
         isSelected
           ? "ring-2 ring-blue-500 bg-blue-50"
           : "hover:bg-gray-50"
       }`}
       onClick={() => onSelect(installation)}
     >
-      <CardContent className="p-4">
-        <div className="space-y-3">
-          {/* En-tête principal */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Zap className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold">
-                  {installation.type_compteur} - {installation.configuration_compteur} - {installation.amperage}A
-                </h3>
-                <div className="text-sm text-gray-600">
-                  {new Date(installation.date_installation).toLocaleDateString("fr-FR")}
-                </div>
-                {installation.client && (
-                  <div className="text-xs text-blue-600 font-medium">
-                    Projet: {installation.client.contact_nom}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => onEdit(installation, e)}
-                title="Modifier l'installation"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => onDelete(installation, e)}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                title="Supprimer l'installation"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+      <CardContent className="p-4 space-y-4">
+        {/* En-tête principal */}
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <Zap className="h-6 w-6 text-blue-600" />
           </div>
-
-          {/* Informations détaillées */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="font-medium text-gray-700">Coffret:</span>
-              <p className="text-gray-600">
-                {installation.composantes_coffret || "Non spécifié"}
-              </p>
+          <div className="flex-1">
+            <h3 className="font-semibold text-lg">
+              {installation.type_compteur} - {installation.configuration_compteur} - {installation.amperage}A
+            </h3>
+            <div className="text-sm text-gray-600">
+              {new Date(installation.date_installation).toLocaleDateString("fr-FR")}
             </div>
-            <div>
-              <span className="font-medium text-gray-700">Câble:</span>
-              <p className="text-gray-600">
-                {installation.cable_type || "Non spécifié"}
-              </p>
-            </div>
-            <div>
-              <span className="font-medium text-gray-700">Terre:</span>
-              <p className="text-gray-600">
-                {installation.protection_terre
-                  ? `${installation.valeur_terre}Ω`
-                  : "Aucune"}
-              </p>
-            </div>
-            <div>
-              <span className="font-medium text-gray-700">Différentiel:</span>
-              <p className="text-gray-600">
-                {installation.presence_differentiel ? "Oui" : "Non"}
-              </p>
-            </div>
+            {installation.client && (
+              <div className="text-sm text-blue-600 font-medium">
+                Projet: {installation.client.contact_nom}
+              </div>
+            )}
           </div>
+        </div>
 
-          {/* Photos - Icône œil */}
-          {totalPhotos > 0 && (
-            <div className="flex items-center justify-between pt-2 border-t">
-              <span className="text-sm font-medium text-gray-700">
-                Photos ({totalPhotos})
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => onViewPhotos(installation, e)}
-                className="h-8 w-8 p-0"
-              >
-                <Eye className="h-4 w-4 text-blue-600" />
-              </Button>
-            </div>
-          )}
+        {/* Informations détaillées */}
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="space-y-1">
+            <span className="font-medium text-gray-700">Coffret:</span>
+            <p className="text-gray-600">
+              {installation.composantes_coffret || "Non spécifié"}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <span className="font-medium text-gray-700">Câble:</span>
+            <p className="text-gray-600">
+              {installation.cable_type || "Non spécifié"}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <span className="font-medium text-gray-700">Terre:</span>
+            <p className="text-gray-600">
+              {installation.protection_terre
+                ? `${installation.valeur_terre}Ω`
+                : "Aucune"}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <span className="font-medium text-gray-700">Différentiel:</span>
+            <p className="text-gray-600">
+              {installation.presence_differentiel ? "Oui" : "Non"}
+            </p>
+          </div>
+        </div>
+
+        {/* Photos - Icône œil */}
+        {totalPhotos > 0 && (
+          <div className="flex items-center justify-between pt-3 border-t">
+            <span className="text-sm font-medium text-gray-700">
+              Photos ({totalPhotos})
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => onViewPhotos(installation, e)}
+              className="h-8 w-8 p-0 hover:bg-blue-50"
+            >
+              <Eye className="h-4 w-4 text-blue-600" />
+            </Button>
+          </div>
+        )}
+
+        {/* Boutons d'action */}
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => onEdit(installation, e)}
+            className="h-8 w-8 p-0 hover:bg-blue-50"
+            title="Modifier l'installation"
+          >
+            <Edit className="h-4 w-4 text-blue-600" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => onDelete(installation, e)}
+            className="h-8 w-8 p-0 hover:bg-red-50"
+            title="Supprimer l'installation"
+          >
+            <Trash2 className="h-4 w-4 text-red-600" />
+          </Button>
         </div>
       </CardContent>
     </Card>

@@ -559,9 +559,9 @@ export default function EquipementsPage() {
     try {
       // Filtrer pour obtenir uniquement les vraies nouvelles photos (fichiers), pas les URLs existantes
       const newPhotos = [formData.photo1, formData.photo2, formData.photo3]
-        .filter(photo => {
+        .filter((photo): photo is File => {
           // Accepter uniquement les fichiers image (pas les URLs)
-          return photo && typeof photo === 'object' && 'type' in photo && photo.type?.startsWith('image/');
+          return photo instanceof File && photo.type.startsWith('image/');
         });
       
       // Si on modifie uniquement les photos, on envoie les photos et les valeurs existantes des temps d'utilisation
@@ -610,23 +610,23 @@ export default function EquipementsPage() {
 
       // Calculer les temps d'utilisation uniquement si nécessaire
       const tempsDiurneSemaine = calculerMoyenne([
-        formData.lundi_diurne,
-        formData.mardi_diurne,
-        formData.mercredi_diurne,
-        formData.jeudi_diurne,
-        formData.vendredi_diurne,
+        formData.lundi_diurne || 0,
+        formData.mardi_diurne || 0,
+        formData.mercredi_diurne || 0,
+        formData.jeudi_diurne || 0,
+        formData.vendredi_diurne || 0,
       ]);
 
       const tempsNocturneSemaine = calculerMoyenne([
-        formData.lundi_nocturne,
-        formData.mardi_nocturne,
-        formData.mercredi_nocturne,
-        formData.jeudi_nocturne,
-        formData.vendredi_nocturne,
+        formData.lundi_nocturne || 0,
+        formData.mardi_nocturne || 0,
+        formData.mercredi_nocturne || 0,
+        formData.jeudi_nocturne || 0,
+        formData.vendredi_nocturne || 0,
       ]);
 
-      const tempsDiurneJournalier = (tempsDiurneSemaine * 5 + (formData.samedi_diurne || 0) * 2) / 7;
-      const tempsNocturneJournalier = (tempsNocturneSemaine * 5 + (formData.samedi_nocturne || 0) * 2) / 7;
+      const tempsDiurneJournalier = (tempsDiurneSemaine * 5 + ((formData.samedi_diurne || 0) * 2)) / 7;
+      const tempsNocturneJournalier = (tempsNocturneSemaine * 5 + ((formData.samedi_nocturne || 0) * 2)) / 7;
 
       data.temps_diurne_journalier = tempsDiurneJournalier.toString();
       data.temps_nocturne_journalier = tempsNocturneJournalier.toString();

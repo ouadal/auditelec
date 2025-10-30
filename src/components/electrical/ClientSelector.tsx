@@ -21,7 +21,12 @@ interface Client {
   contact_fonction?: string;
   contact_email: string;
   nom_entreprise?: string;
-  ville?: string;
+}
+
+interface Statistics {
+  totalInstallations: number;
+  totalPrises: number;
+  totalInterrupteurs: number;
 }
 
 interface ClientSelectorProps {
@@ -45,7 +50,6 @@ export function ClientSelector({
       setError(null);
       console.log("🔄 Chargement des projets...");
       const response = await clientService.getAll();
-      // Le service retourne déjà response.data (Laravel: { success, data })
       const clientsData = Array.isArray((response as any)?.data)
         ? (response as any).data
         : Array.isArray(response)
@@ -54,7 +58,6 @@ export function ClientSelector({
       console.log("✅ Projets chargés:", clientsData.length);
       setClients(clientsData);
     } catch (error) {
-      // Éviter les console.error pour ne pas déclencher l'overlay d'erreurs Next
       const axiosError = error as any;
       const status = axiosError?.response?.status;
       const respData = axiosError?.response?.data;
@@ -162,10 +165,10 @@ export function ClientSelector({
             {/* Informations du projet sélectionné */}
             {selectedClient && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <Building className="h-4 w-4 text-blue-600" />
                   <span className="font-medium text-blue-900">
-                    Projet sélectionné
+                    {selectedClient.nom_entreprise || selectedClient.contact_nom}
                   </span>
                 </div>
                 <div className="text-sm space-y-1">

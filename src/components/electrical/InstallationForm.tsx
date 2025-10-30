@@ -203,7 +203,7 @@ export function InstallationForm({
     label: string;
     description?: string;
   }) => (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
         <Label className="text-sm font-medium">{label}</Label>
         {description && (
@@ -211,57 +211,46 @@ export function InstallationForm({
         )}
       </div>
 
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
-        <input
+      <div className="flex gap-4">
+        <Input
           type="file"
           multiple
           accept="image/*"
-          capture="environment"
           onChange={(e) => handleFileChange(e.target.files, fieldName)}
-          className="hidden"
-          id={`upload-${fieldName}`}
+          className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
         />
-        <label
-          htmlFor={`upload-${fieldName}`}
-          className="flex flex-col items-center justify-center cursor-pointer"
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => startCamera(fieldName as PhotoField)}
+          className="flex items-center gap-2"
         >
-          <Upload className="h-8 w-8 text-gray-400 mb-2" />
-          <span className="text-sm text-gray-600">
-            Cliquez pour ajouter des photos
-          </span>
-          <span className="text-xs text-gray-400">PNG, JPG jusqu'à 10MB</span>
-        </label>
-        <div className="mt-3 flex justify-center">
-          <Button
-            type="button"
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={() => startCamera(fieldName as PhotoField)}
-          >
-            <Camera className="h-4 w-4" />
-            Prendre une photo
-          </Button>
-        </div>
+          <Camera className="h-4 w-4" />
+          Photo
+        </Button>
       </div>
+      <p className="text-xs text-gray-600">
+        Formats acceptés: JPEG, PNG, JPG - Maximum 10MB
+      </p>
 
       {(photoPreview[fieldName]?.length || (formData[fieldName as keyof InstallationFormType] as File[])?.length) ? (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-4">
           {(photoPreview[fieldName] && photoPreview[fieldName].length > 0
             ? photoPreview[fieldName]
             : ((formData[fieldName as keyof InstallationFormType] as File[]) || []).map((file) => URL.createObjectURL(file))
           ).map((preview, index) => (
-            <div key={index} className="relative group">
+            <div key={index} className="relative group aspect-square">
               <img
                 src={preview}
-                alt={`Preview ${index + 1}`}
-                className="w-full h-20 object-cover rounded border"
+                alt={`Photo ${index + 1}`}
+                className="w-full h-full object-cover rounded-lg border hover:border-blue-500 transition-colors"
               />
               <button
                 type="button"
                 onClick={() => removePhoto(index, fieldName)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <X className="h-3 w-3" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           ))}

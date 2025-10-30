@@ -281,7 +281,7 @@ export const clientService = {
       const response = await api.get('/clients');
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la rÃ©cupÃ©ration des clients:', error);
+      console.warn('Erreur lors de la récupération des clients:', error);
       throw error;
     }
   },
