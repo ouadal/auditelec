@@ -561,7 +561,7 @@ export default function EquipementsPage() {
       const newPhotos = [formData.photo1, formData.photo2, formData.photo3]
         .filter((photo): photo is File => {
           // Accepter uniquement les fichiers image (pas les URLs)
-          return photo instanceof File && photo.type.startsWith('image/');
+          return Boolean(photo) && typeof photo === 'object' && 'type' in photo && photo.type.startsWith('image/');
         });
       
       // Si on modifie uniquement les photos, on envoie les photos et les valeurs existantes des temps d'utilisation
@@ -1397,64 +1397,62 @@ export default function EquipementsPage() {
 
       {/* Modal Détails Énergétiques */}
       <Dialog open={showEnergyModal} onOpenChange={setShowEnergyModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
+        <DialogContent className="max-w-2xl p-3">
+          <DialogHeader className="p-0 mb-2">
+            <DialogTitle className="flex items-center gap-1 text-base">
+              <Eye className="h-4 w-4" />
               Détails Énergétiques
             </DialogTitle>
           </DialogHeader>
 
           {loadingEnergyDetails ? (
-            <div className="flex items-center justify-center py-8">
-              <LoadingSpinner size="lg" />
+            <div className="flex items-center justify-center py-4">
+              <LoadingSpinner size="md" />
             </div>
           ) : energyDetails ? (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {/* Informations Essentielles */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Eye className="h-5 w-5 text-primary" />
+              <Card className="p-2">
+                <CardHeader className="p-2">
+                  <CardTitle className="flex items-center gap-1 text-base">
+                    <Eye className="h-4 w-4 text-primary" />
                     {energyDetails.equipement.nom}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-2 space-y-1">
                   {/* Informations de base */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
+                  <div className="flex flex-wrap gap-1 text-xs">
+                    <div className="flex-1">
                       <span className="text-muted-foreground">Pièce:</span>
-                      <span className="ml-2 font-medium text-blue-600">
+                      <span className="ml-1 font-medium text-blue-600">
                         {energyDetails.piece.nom}
                       </span>
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <span className="text-muted-foreground">Bâtiment:</span>
-                      <span className="ml-2 font-medium text-orange-600">
+                      <span className="ml-1 font-medium text-orange-600">
                         {energyDetails.batiment.nom}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">
-                        Nombre d'équipements:
-                      </span>
-                      <span className="ml-2 font-medium">
+                    <div className="flex-1">
+                      <span className="text-muted-foreground">Nombre:</span>
+                      <span className="ml-1 font-medium">
                         {energyDetails.piece.resume?.nombre_equipements || 0}
                       </span>
                     </div>
                   </div>
 
                   {/* Énergies Totales de la Pièce */}
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3 text-blue-600">
-                      🏠 Consommations Totales de la Pièce
+                  <div className="border-t pt-1">
+                    <h4 className="font-medium mb-1 text-blue-600 text-xs">
+                      🏠 Pièce
                     </h4>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <span className="text-sm font-medium">
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center p-1 bg-blue-50 rounded border border-blue-200">
+                        <span className="text-xs">
                           Énergie journalière totale:
                         </span>
-                        <span className="font-bold text-blue-700">
+                        <span className="font-medium text-blue-700 text-xs">
                           {energyDetails.piece.resume
                             ?.energie_totale_annuelle_kWh
                             ? (
@@ -1462,14 +1460,14 @@ export default function EquipementsPage() {
                                   .energie_totale_annuelle_kWh / 365
                               ).toFixed(2)
                             : "0.00"}{" "}
-                          kWh/jour
+                          kWh/j
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <span className="text-sm font-medium">
+                      <div className="flex justify-between items-center p-1 bg-blue-50 rounded border border-blue-200">
+                        <span className="text-xs">
                           Énergie mensuelle totale:
                         </span>
-                        <span className="font-bold text-blue-700">
+                        <span className="font-medium text-blue-700 text-xs">
                           {energyDetails.piece.resume
                             ?.energie_totale_annuelle_kWh
                             ? (
@@ -1477,34 +1475,46 @@ export default function EquipementsPage() {
                                   .energie_totale_annuelle_kWh / 12
                               ).toFixed(2)
                             : "0.00"}{" "}
-                          kWh/mois
+                          kWh/m
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg border-2 border-blue-300">
-                        <span className="text-sm font-medium">
-                          Énergie annuelle totale:
+                      <div className="flex justify-between items-center p-1 bg-blue-100 rounded border border-blue-300">
+                        <span className="text-xs">
+                           Énergie annuelle totale:
                         </span>
-                        <span className="font-bold text-blue-800">
+                        <span className="font-medium text-blue-800 text-xs">
                           {energyDetails.piece.resume?.energie_totale_annuelle_kWh?.toFixed(
                             2
                           ) || "0.00"}{" "}
                           kWh/an
                         </span>
                       </div>
+                      {/* Total Puissance Pièce */}
+                      {energyDetails.piece.resume?.puissance_totale_W > 0 && (
+                        <div className="flex justify-between items-center p-1 bg-green-50 rounded border border-green-200">
+                          <span className="text-xs">
+                            Puissance total par:
+                          </span>
+                          <span className="font-medium text-green-700 text-xs">
+                            {energyDetails.piece.resume.puissance_totale_W.toFixed(0)}{" "}
+                            W
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Énergies Totales du Bâtiment */}
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3 text-orange-600">
-                      🏢 Consommations Totales du Bâtiment
+                  <div className="border-t pt-1">
+                    <h4 className="font-medium mb-1 text-orange-600 text-xs">
+                      🏢 Bâtiment
                     </h4>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-200">
-                        <span className="text-sm font-medium">
-                          Énergie journalière totale:
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center p-1 bg-orange-50 rounded border border-orange-200">
+                        <span className="text-xs">
+                          Energie journalière totale:
                         </span>
-                        <span className="font-bold text-orange-700">
+                        <span className="font-medium text-orange-700 text-xs">
                           {energyDetails.batiment.resume
                             ?.energie_totale_annuelle_kWh
                             ? (
@@ -1512,14 +1522,14 @@ export default function EquipementsPage() {
                                   .energie_totale_annuelle_kWh / 365
                               ).toFixed(2)
                             : "0.00"}{" "}
-                          kWh/jour
+                          kWh/j
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-200">
-                        <span className="text-sm font-medium">
-                          Énergie mensuelle totale:
+                      <div className="flex justify-between items-center p-1 bg-orange-50 rounded border border-orange-200">
+                        <span className="text-xs">
+                          Energie mensuelle totale:
                         </span>
-                        <span className="font-bold text-orange-700">
+                        <span className="font-medium text-orange-700 text-xs">
                           {energyDetails.batiment.resume
                             ?.energie_totale_annuelle_kWh
                             ? (
@@ -1527,20 +1537,32 @@ export default function EquipementsPage() {
                                   .energie_totale_annuelle_kWh / 12
                               ).toFixed(2)
                             : "0.00"}{" "}
-                          kWh/mois
+                          kWh/m
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-orange-100 rounded-lg border-2 border-orange-300">
-                        <span className="text-sm font-medium">
-                          Énergie annuelle totale:
+                      <div className="flex justify-between items-center p-1 bg-orange-100 rounded border border-orange-300">
+                        <span className="text-xs">
+                          Energie annuelle totale:
                         </span>
-                        <span className="font-bold text-orange-800">
+                        <span className="font-medium text-orange-800 text-xs">
                           {energyDetails.batiment.resume?.energie_totale_annuelle_kWh?.toFixed(
                             2
                           ) || "0.00"}{" "}
                           kWh/an
                         </span>
                       </div>
+                      {/* Total Puissance Bâtiment */}
+                      {energyDetails.batiment.resume?.puissance_totale_W > 0 && (
+                        <div className="flex justify-between items-center p-1 bg-green-50 rounded border border-green-200">
+                          <span className="text-xs">
+                            Puissance:
+                          </span>
+                          <span className="font-medium text-green-700 text-xs">
+                            {energyDetails.batiment.resume.puissance_totale_W.toFixed(0)}{" "}
+                            W
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1548,13 +1570,13 @@ export default function EquipementsPage() {
                   {(energyDetails.equipement.photo1 ||
                     energyDetails.equipement.photo2 ||
                     energyDetails.equipement.photo3) && (
-                    <div className="border-t pt-4">
-                      <h4 className="font-medium mb-3 text-purple-600 flex items-center gap-2">
-                        <ImageIcon className="h-5 w-5" />
-                        📸 Photos de l'équipement
+                    <div className="border-t pt-2">
+                      <h4 className="font-medium mb-2 text-purple-600 flex items-center gap-1 text-sm">
+                        <ImageIcon className="h-4 w-4" />
+                        📸 Photos
                       </h4>
-                      <div className="flex items-center gap-3">
-                        <div className="flex gap-2 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1 flex-1">
                           {[
                             energyDetails.equipement.photo1,
                             energyDetails.equipement.photo2,

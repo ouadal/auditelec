@@ -306,6 +306,9 @@ export default function ActivitesPage() {
                   <SelectItem value="Piece">Pièce</SelectItem>
                   <SelectItem value="Audit">Audit</SelectItem>
                   <SelectItem value="Technicien">Utilisateur</SelectItem>
+                  <SelectItem value="Installation">Installation</SelectItem>
+                  <SelectItem value="PriseElectrique">Prise électrique</SelectItem>
+                  <SelectItem value="Interrupteur">Interrupteur</SelectItem>
                 </SelectContent>
               </Select>
             </div>
