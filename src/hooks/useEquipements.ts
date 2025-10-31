@@ -218,13 +218,15 @@ export const useEquipements = (
     setLoading(true);
 
     try {
+      let newEquipement;
       if (isEditing) {
         // Mode modification : enregistrer et fermer
         const { id, ...dataToUpdate } = formData;
-        await apiHelpers.equipements.update(
+        const response = await apiHelpers.equipements.update(
           editingEquipementId || formData.id,
           dataToUpdate
         );
+        newEquipement = response.data?.data;
         toast({
           title: "Succès",
           description: "Équipement modifié avec succès",
@@ -233,7 +235,8 @@ export const useEquipements = (
         onShowForm?.(false);
       } else {
         // Mode création : enregistrer et fermer
-        await apiHelpers.equipements.create(formData);
+        const response = await apiHelpers.equipements.create(formData);
+        newEquipement = response.data?.data;
         toast({ title: "Succès", description: "Équipement créé avec succès" });
         onSuccess?.();
       }

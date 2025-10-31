@@ -56,7 +56,6 @@ interface Equipement {
   tension?: number;
   courant?: number;
   facteur_puissance: number;
-  heures_utilisation_jour: number;
   // Temps détaillés par jour
   lundi_diurne?: number;
   lundi_nocturne?: number;
@@ -155,7 +154,6 @@ export default function EquipementsPage() {
     tension: 0,
     courant: 0,
     facteur_puissance: 1.0,
-    heures_utilisation_jour: 8,
     photo1: "",
     photo2: "",
     photo3: "",
@@ -382,31 +380,30 @@ export default function EquipementsPage() {
       tension: 0,
       courant: 0,
       facteur_puissance: 1.0,
-      heures_utilisation_jour: 8,
       photo1: "",
       photo2: "",
       photo3: "",
-      // Temps détaillés par jour
-      lundi_diurne: 0,
+      // Temps détaillés par jour (8h par défaut en semaine, 4h le weekend)
+      lundi_diurne: 8,
       lundi_nocturne: 0,
-      mardi_diurne: 0,
+      mardi_diurne: 8,
       mardi_nocturne: 0,
-      mercredi_diurne: 0,
+      mercredi_diurne: 8,
       mercredi_nocturne: 0,
-      jeudi_diurne: 0,
+      jeudi_diurne: 8,
       jeudi_nocturne: 0,
-      vendredi_diurne: 0,
+      vendredi_diurne: 8,
       vendredi_nocturne: 0,
-      samedi_diurne: 0,
+      samedi_diurne: 4,
       samedi_nocturne: 0,
-      dimanche_diurne: 0,
+      dimanche_diurne: 4,
       dimanche_nocturne: 0,
-      // Temps moyens
-      temps_diurne_journalier: 0,
+      // Temps moyens (calculés à partir des temps détaillés)
+      temps_diurne_journalier: 8,
       temps_nocturne_journalier: 0,
-      temps_diurne_semaine: 0,
+      temps_diurne_semaine: 8,
       temps_nocturne_semaine: 0,
-      temps_diurne_weekend: 0,
+      temps_diurne_weekend: 4,
       temps_nocturne_weekend: 0,
     });
     setPhotoPreviews(["", "", ""]);
@@ -491,38 +488,45 @@ export default function EquipementsPage() {
         nom_equipement: equipement.nom_equipement,
         piece_id: equipement.piece_id,
         type_equipement_id: equipement.type_equipement_id,
-        nombre: equipement.nombre,
-        valeur_mesuree: equipement.valeur_mesuree,
+        nombre: Math.round(equipement.nombre || 0),
+        valeur_mesuree: Math.round(equipement.valeur_mesuree || 0),
         type_valeur: equipement.type_valeur,
-        tension: equipement.tension || 0,
-        courant: equipement.courant || 0,
+        tension: Math.round(equipement.tension || 0),
+        courant: Math.round(equipement.courant || 0),
         facteur_puissance: equipement.facteur_puissance,
-        heures_utilisation_jour: equipement.heures_utilisation_jour,
+        lundi_diurne: Math.round(equipement.lundi_diurne || 0),
+        lundi_nocturne: Math.round(equipement.lundi_nocturne || 0),
+        mardi_diurne: Math.round(equipement.mardi_diurne || 0),
+        mardi_nocturne: Math.round(equipement.mardi_nocturne || 0),
+        mercredi_diurne: Math.round(equipement.mercredi_diurne || 0),
+        mercredi_nocturne: Math.round(equipement.mercredi_nocturne || 0),
+        jeudi_diurne: Math.round(equipement.jeudi_diurne || 0),
+        jeudi_nocturne: Math.round(equipement.jeudi_nocturne || 0),
+        vendredi_diurne: Math.round(equipement.vendredi_diurne || 0),
+        vendredi_nocturne: Math.round(equipement.vendredi_nocturne || 0),
+        samedi_diurne: Math.round(equipement.samedi_diurne || 0),
+        samedi_nocturne: Math.round(equipement.samedi_nocturne || 0),
+        dimanche_diurne: Math.round(equipement.dimanche_diurne || 0),
+        dimanche_nocturne: Math.round(equipement.dimanche_nocturne || 0),
         photo1: photos[0] || "",
         photo2: photos[1] || "",
         photo3: photos[2] || "",
         // Temps détaillés par jour (utiliser les moyennes pour remplir les champs)
-        lundi_diurne: equipement.temps_diurne_semaine || 0,
-        lundi_nocturne: equipement.temps_nocturne_semaine || 0,
-        mardi_diurne: equipement.temps_diurne_semaine || 0,
-        mardi_nocturne: equipement.temps_nocturne_semaine || 0,
-        mercredi_diurne: equipement.temps_diurne_semaine || 0,
-        mercredi_nocturne: equipement.temps_nocturne_semaine || 0,
-        jeudi_diurne: equipement.temps_diurne_semaine || 0,
-        jeudi_nocturne: equipement.temps_nocturne_semaine || 0,
-        vendredi_diurne: equipement.temps_diurne_semaine || 0,
-        vendredi_nocturne: equipement.temps_nocturne_semaine || 0,
-        samedi_diurne: equipement.temps_diurne_weekend || 0,
-        samedi_nocturne: equipement.temps_nocturne_weekend || 0,
-        dimanche_diurne: equipement.temps_diurne_weekend || 0,
-        dimanche_nocturne: equipement.temps_nocturne_weekend || 0,
-        // Temps moyens (conserver les valeurs null/undefined)
-        temps_diurne_journalier: equipement.temps_diurne_journalier,
-        temps_nocturne_journalier: equipement.temps_nocturne_journalier,
-        temps_diurne_semaine: equipement.temps_diurne_semaine,
-        temps_nocturne_semaine: equipement.temps_nocturne_semaine,
-        temps_diurne_weekend: equipement.temps_diurne_weekend,
-        temps_nocturne_weekend: equipement.temps_nocturne_weekend,
+        lundi_diurne: equipement.lundi_diurne || 0,
+        lundi_nocturne: equipement.lundi_nocturne || 0,
+        mardi_diurne: equipement.mardi_diurne || 0,
+        mardi_nocturne: equipement.mardi_nocturne || 0,
+        mercredi_diurne: equipement.mercredi_diurne || 0,
+        mercredi_nocturne: equipement.mercredi_nocturne || 0,
+        jeudi_diurne: equipement.jeudi_diurne || 0,
+        jeudi_nocturne: equipement.jeudi_nocturne || 0,
+        vendredi_diurne: equipement.vendredi_diurne || 0,
+        vendredi_nocturne: equipement.vendredi_nocturne || 0,
+        samedi_diurne: equipement.samedi_diurne || 0,
+        samedi_nocturne: equipement.samedi_nocturne || 0,
+        dimanche_diurne: equipement.dimanche_diurne || 0,
+        dimanche_nocturne: equipement.dimanche_nocturne || 0,
+
       });
 
       // Mettre à jour les prévisualisations avec les URLs des photos existantes
@@ -544,13 +548,50 @@ export default function EquipementsPage() {
     }
   };
 
+  // Fonction pour calculer les heures d'utilisation totales par jour
+  const calculerHeuresUtilisationJour = (data: any) => {
+    // Si les données sont au format du formulaire (détail par jour)
+    if (data.lundi_diurne !== undefined) {
+      // On calcule d'abord le total hebdomadaire
+      const totalHeuresDiurnes = (
+        (data.lundi_diurne || 0) +
+        (data.mardi_diurne || 0) +
+        (data.mercredi_diurne || 0) +
+        (data.jeudi_diurne || 0) +
+        (data.vendredi_diurne || 0) +
+        (data.samedi_diurne || 0) +
+        (data.dimanche_diurne || 0)
+      );
+
+      const totalHeuresNocturnes = (
+        (data.lundi_nocturne || 0) +
+        (data.mardi_nocturne || 0) +
+        (data.mercredi_nocturne || 0) +
+        (data.jeudi_nocturne || 0) +
+        (data.vendredi_nocturne || 0) +
+        (data.samedi_nocturne || 0) +
+        (data.dimanche_nocturne || 0)
+      );
+
+      // On arrondit à l'entier le plus proche après la division par 7
+      return Math.round((totalHeuresDiurnes + totalHeuresNocturnes) / 7);
+    }
+
+    // Si on a juste heures_utilisation_jour
+    else if (data.heures_utilisation_jour !== undefined) {
+      return Math.round(data.heures_utilisation_jour);
+    }
+    
+    return 0;
+  };
+
   // Fonction pour calculer la moyenne des temps d'utilisation
   const calculerMoyenne = (valeurs: (number | undefined)[]) => {
     const valeursValides = valeurs
       .map(v => typeof v === 'number' ? v : 0)
       .filter(v => !isNaN(v));
     return valeursValides.length > 0 
-      ? valeursValides.reduce((a, b) => a + b, 0) / valeursValides.length 
+      ? Math.round(valeursValides.reduce((a, b) => a + b, 0) / valeursValides.length)
       : 0;
   };
 
@@ -573,13 +614,7 @@ export default function EquipementsPage() {
           data.append('photo[]', photo);
         });
 
-        // Ajouter les valeurs existantes des temps d'utilisation seulement si elles ne sont pas vides
-        if (formData.temps_diurne_journalier) data.append('temps_diurne_journalier', formData.temps_diurne_journalier.toString());
-        if (formData.temps_nocturne_journalier) data.append('temps_nocturne_journalier', formData.temps_nocturne_journalier.toString());
-        if (formData.temps_diurne_semaine) data.append('temps_diurne_semaine', formData.temps_diurne_semaine.toString());
-        if (formData.temps_nocturne_semaine) data.append('temps_nocturne_semaine', formData.temps_nocturne_semaine.toString());
-        if (formData.temps_diurne_weekend) data.append('temps_diurne_weekend', formData.temps_diurne_weekend.toString());
-        if (formData.temps_nocturne_weekend) data.append('temps_nocturne_weekend', formData.temps_nocturne_weekend.toString());
+
         
         await apiHelpers.equipements.update(editingId, data);
         toast({
@@ -601,39 +636,29 @@ export default function EquipementsPage() {
         type_equipement_id: formData.type_equipement_id?.toString() || '0',
         nombre: formData.nombre?.toString() || '1',
         valeur_mesuree: formData.valeur_mesuree?.toString() || '0',
-        type_valeur: formData.type_valeur || 'puissance',
-        tension: formData.tension?.toString() || '0',
+        type_valeur: 'puissance', // Forcer le type à puissance pour le calcul d'énergie
+        tension: formData.tension?.toString() || '230', // Tension par défaut en France
         courant: formData.courant?.toString() || '0',
-        facteur_puissance: formData.facteur_puissance?.toString() || '0',
-        heures_utilisation_jour: formData.heures_utilisation_jour?.toString() || '0',
+        facteur_puissance: formData.facteur_puissance?.toString() || '0.8', // Facteur de puissance par défaut
       };
 
-      // Calculer les temps d'utilisation uniquement si nécessaire
-      const tempsDiurneSemaine = calculerMoyenne([
-        formData.lundi_diurne || 0,
-        formData.mardi_diurne || 0,
-        formData.mercredi_diurne || 0,
-        formData.jeudi_diurne || 0,
-        formData.vendredi_diurne || 0,
-      ]);
 
-      const tempsNocturneSemaine = calculerMoyenne([
-        formData.lundi_nocturne || 0,
-        formData.mardi_nocturne || 0,
-        formData.mercredi_nocturne || 0,
-        formData.jeudi_nocturne || 0,
-        formData.vendredi_nocturne || 0,
-      ]);
 
-      const tempsDiurneJournalier = (tempsDiurneSemaine * 5 + ((formData.samedi_diurne || 0) * 2)) / 7;
-      const tempsNocturneJournalier = (tempsNocturneSemaine * 5 + ((formData.samedi_nocturne || 0) * 2)) / 7;
-
-      data.temps_diurne_journalier = tempsDiurneJournalier.toString();
-      data.temps_nocturne_journalier = tempsNocturneJournalier.toString();
-      data.temps_diurne_semaine = tempsDiurneSemaine.toString();
-      data.temps_nocturne_semaine = tempsNocturneSemaine.toString();
-      data.temps_diurne_weekend = (formData.samedi_diurne || 0).toString();
-      data.temps_nocturne_weekend = (formData.samedi_nocturne || 0).toString();
+      // Envoyer directement les champs individuels de temps (nouveau format backend)
+      data.lundi_diurne = formData.lundi_diurne || 0;
+      data.lundi_nocturne = formData.lundi_nocturne || 0;
+      data.mardi_diurne = formData.mardi_diurne || 0;
+      data.mardi_nocturne = formData.mardi_nocturne || 0;
+      data.mercredi_diurne = formData.mercredi_diurne || 0;
+      data.mercredi_nocturne = formData.mercredi_nocturne || 0;
+      data.jeudi_diurne = formData.jeudi_diurne || 0;
+      data.jeudi_nocturne = formData.jeudi_nocturne || 0;
+      data.vendredi_diurne = formData.vendredi_diurne || 0;
+      data.vendredi_nocturne = formData.vendredi_nocturne || 0;
+      data.samedi_diurne = formData.samedi_diurne || 0;
+      data.samedi_nocturne = formData.samedi_nocturne || 0;
+      data.dimanche_diurne = formData.dimanche_diurne || 0;
+      data.dimanche_nocturne = formData.dimanche_nocturne || 0;
 
       // Ajouter les photos seulement si elles existent (fichiers)
       if (newPhotos.length > 0) {
@@ -951,24 +976,6 @@ export default function EquipementsPage() {
                 </div>
               )}
 
-              {/* Heures d'utilisation */}
-              <div>
-                <Label>Heures d'utilisation par jour</Label>
-                <Input
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  max="24"
-                  value={formData.heures_utilisation_jour}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      heures_utilisation_jour: parseFloat(e.target.value) || 8,
-                    })
-                  }
-                />
-              </div>
-
               {/* Facteur de puissance */}
               <div>
                 <Label>Facteur de puissance</Label>
@@ -1150,7 +1157,7 @@ export default function EquipementsPage() {
                         <div className="flex">
                           <Input
                             type="number"
-                            step="0.5"
+                            step="1"
                             min="0"
                             max="12"
                             value={
@@ -1158,13 +1165,15 @@ export default function EquipementsPage() {
                                 `${jour.key}_diurne` as keyof typeof formData
                               ] as number
                             }
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const value = e.target.value.replace(',', '.');
+                              const parsedValue = parseFloat(value);
+                              const validValue = !isNaN(parsedValue) ? Math.min(Math.max(Math.round(parsedValue), 0), 12) : 0;
                               setFormData({
                                 ...formData,
-                                [`${jour.key}_diurne`]:
-                                  parseFloat(e.target.value) || 0,
-                              })
-                            }
+                                [`${jour.key}_diurne`]: validValue,
+                              });
+                            }}
                             className="rounded-r-none text-sm"
                           />
                           <div className="flex items-center px-2 bg-muted border border-l-0 rounded-r-md text-xs">
@@ -1179,7 +1188,7 @@ export default function EquipementsPage() {
                         <div className="flex">
                           <Input
                             type="number"
-                            step="0.5"
+                            step="1"
                             min="0"
                             max="12"
                             value={
@@ -1187,13 +1196,15 @@ export default function EquipementsPage() {
                                 `${jour.key}_nocturne` as keyof typeof formData
                               ] as number
                             }
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const value = e.target.value.replace(',', '.');
+                              const parsedValue = parseFloat(value);
+                              const validValue = !isNaN(parsedValue) ? Math.min(Math.max(Math.round(parsedValue), 0), 12) : 0;
                               setFormData({
                                 ...formData,
-                                [`${jour.key}_nocturne`]:
-                                  parseFloat(e.target.value) || 0,
-                              })
-                            }
+                                [`${jour.key}_nocturne`]: validValue,
+                              });
+                            }}
                             className="rounded-r-none text-sm"
                           />
                           <div className="flex items-center px-2 bg-muted border border-l-0 rounded-r-md text-xs">
@@ -1224,7 +1235,7 @@ export default function EquipementsPage() {
                           (formData.vendredi_diurne || 0) +
                           (formData.samedi_diurne || 0) +
                           (formData.dimanche_diurne || 0)
-                        ).toFixed(1)}
+                        )}
                         h
                       </span>
                     </div>
@@ -1241,7 +1252,7 @@ export default function EquipementsPage() {
                           (formData.vendredi_nocturne || 0) +
                           (formData.samedi_nocturne || 0) +
                           (formData.dimanche_nocturne || 0)
-                        ).toFixed(1)}
+                        )}
                         h
                       </span>
                     </div>
@@ -1265,8 +1276,16 @@ export default function EquipementsPage() {
                           (formData.samedi_nocturne || 0) +
                           (formData.dimanche_diurne || 0) +
                           (formData.dimanche_nocturne || 0)
-                        ).toFixed(1)}
+                        )}
                         h
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">
+                        Total heures/jour (utilisé pour les calculs):
+                      </span>
+                      <span className="ml-2 font-medium">
+                        {calculerHeuresUtilisationJour(formData)}h
                       </span>
                     </div>
                   </div>
@@ -1325,28 +1344,27 @@ export default function EquipementsPage() {
                       <div>Énergie: {equipement.valeur_mesuree} kWh/an</div>
                     )}
                   </div>
-                  <div>Heures/jour: {equipement.heures_utilisation_jour}h</div>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between font-medium">
+                      <span>Total heures/jour:</span>
+                      <span>{calculerHeuresUtilisationJour(equipement)}h</span>
+                    </div>
+                  </div>
 
                   {/* Énergies */}
                   <div className="border-t pt-2 mt-2">
-                    {equipement.energie_avec_unite && (
-                      <div className="font-medium text-primary">
-                        <span className="text-muted-foreground">Jour:</span>{" "}
-                        {equipement.energie_avec_unite}
-                      </div>
-                    )}
-                    {equipement.energie_mensuelle_avec_unite && (
-                      <div className="font-medium text-blue-600">
-                        <span className="text-muted-foreground">Mois:</span>{" "}
-                        {equipement.energie_mensuelle_avec_unite}
-                      </div>
-                    )}
-                    {equipement.energie_annuelle_avec_unite && (
-                      <div className="font-medium text-orange-600">
-                        <span className="text-muted-foreground">An:</span>{" "}
-                        {equipement.energie_annuelle_avec_unite}
-                      </div>
-                    )}
+                    <div className="font-medium text-primary">
+                      <span className="text-muted-foreground">Jour:</span>{" "}
+                      {equipement.energie?.toFixed(3) || "0.000"} kWh/jour
+                    </div>
+                    <div className="font-medium text-blue-600">
+                      <span className="text-muted-foreground">Mois:</span>{" "}
+                      {equipement.energie_mensuelle?.toFixed(2) || "0.00"} kWh/mois
+                    </div>
+                    <div className="font-medium text-orange-600">
+                      <span className="text-muted-foreground">An:</span>{" "}
+                      {equipement.energie_annuelle?.toFixed(2) || "0.00"} kWh/an
+                    </div>
                   </div>
                 </div>
 

@@ -29,6 +29,8 @@ import {
   Phone,
   MapPin,
   Briefcase,
+  User,
+  Calendar,
 } from "lucide-react";
 
 interface Client {
@@ -42,6 +44,7 @@ interface Client {
   secteur_activite?: string;
   ville?: string;
   adresse_entreprise?: string;
+  created_at: string;
 }
 
 export default function ClientsPage() {
@@ -56,6 +59,12 @@ export default function ClientsPage() {
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<number | null>(null);
+
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmDialogContent, setConfirmDialogContent] = useState({
+    title: "",
+    description: ""
+  });
 
   const [formData, setFormData] = useState({
     nom_entreprise: "",
@@ -88,7 +97,7 @@ export default function ClientsPage() {
         else if (!phoneRegex.test(v)) message = "Numéro de téléphone invalide";
         break;
       case "contact_email":
-        if (v && !emailRegex.test(v)) message = "Email invalide";
+        if (v.trim() && !emailRegex.test(v) && !phoneRegex.test(v)) message = "Format invalide. Entrez un email ou un numéro de téléphone valide";
         break;
       case "adresse_entreprise":
         if (!v.trim()) message = "L'adresse entreprise est requise";
@@ -204,17 +213,36 @@ export default function ClientsPage() {
   };
 
   const handleSave = async () => {
-    // validate all required fields to show errors for untouched fields
-    validateField("nom_entreprise", formData.nom_entreprise);
-    validateField("contact_nom", formData.contact_nom);
-    validateField("contact_tel", formData.contact_tel);
-    validateField("secteur_activite", formData.secteur_activite);
-    validateField("adresse_entreprise", formData.adresse_entreprise);
+    // Valider tous les champs requis et collecter les erreurs
+    const fieldsToValidate = [
+      { field: "nom_entreprise", label: "Nom du projet" },
+      { field: "contact_nom", label: "Responsable projet" },
+      { field: "contact_tel", label: "Téléphone" },
+      { field: "secteur_activite", label: "Secteur d'activité" },
+      { field: "adresse_entreprise", label: "Adresse entreprise" }
+    ];
+
+    let missingFields = [];
+    for (const { field, label } of fieldsToValidate) {
+      validateField(field, formData[field as keyof typeof formData]);
+      if (!formData[field as keyof typeof formData]?.toString().trim()) {
+        missingFields.push(label);
+      }
+    }
+
+    if (missingFields.length > 0) {
+      toast({
+        title: "Champs manquants",
+        description: `Veuillez remplir les champs suivants : ${missingFields.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!isFormValid()) {
       toast({
-        title: "Erreur",
-        description: "Veuillez remplir les champs obligatoires",
+        title: "Erreur de validation",
+        description: "Veuillez corriger les erreurs dans le formulaire",
         variant: "destructive",
       });
       return;
@@ -228,7 +256,12 @@ export default function ClientsPage() {
         toast({ title: "Succès", description: "Projet modifié" });
       } else {
         await apiHelpers.clients.create(payload);
-        toast({ title: "Succès", description: "Projet créé" });
+        // Afficher une boîte de dialogue de confirmation avec le nom du créateur
+        setShowConfirmDialog(true);
+        setConfirmDialogContent({
+          title: "Projet créé avec succès",
+          description: `Le projet "${formData.nom_entreprise}" a été créé par ${formData.contact_nom}.`
+        });
       }
 
       // save prefill
@@ -371,7 +404,7 @@ export default function ClientsPage() {
               </div>
 
               <div>
-                <Label>Responsable entreprise</Label>
+                <Label>Responsable Centre</Label>
                 <Input
                   autoComplete="organization-title"
                   value={formData.contact_fonction}
@@ -395,9 +428,9 @@ export default function ClientsPage() {
               </div>
 
               <div>
-                <Label>Email</Label>
+                <Label>Email ou téléphone entreprise</Label>
                 <Input
-                  type="email"
+                  type="text"
                   autoComplete="email"
                   value={formData.contact_email}
                   onChange={(e) => handleChange("contact_email", e.target.value)}
@@ -496,6 +529,12 @@ export default function ClientsPage() {
                         <span className="truncate">{client.adresse_entreprise}</span>
                       </div>
                     )}
+                    {client.contact_fonction && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <User className="h-4 w-4" />
+                        <span className="truncate">{client.contact_fonction}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="border-t border-muted-foreground/30 pt-2" />
@@ -509,6 +548,16 @@ export default function ClientsPage() {
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4" />
                         <span>{client.contact_tel}</span>
+                      </div>
+                    )}
+                    {client.created_at && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>{new Date(client.created_at).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })}</span>
                       </div>
                     )}
                   </div>
@@ -590,6 +639,20 @@ export default function ClientsPage() {
                 </>
               )}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDialogContent.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDialogContent.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowConfirmDialog(false)}>OK</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
