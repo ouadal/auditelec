@@ -72,12 +72,13 @@ export interface PriseElectriqueForm {
   id?: number;
   installation_id: number;
   reference: string;
-  etat: string;
+  etat: 'bon' | 'defectueux' | 'non_installe' | 'a_remplacer' | 'manquant';
   commentaire: string;
   localisation: string;
   avec_terre: boolean;
   ordre: number;
   photos: File[];
+  [key: string]: number | string | boolean | File[] | undefined;
 }
 
 export interface InterrupteurForm {

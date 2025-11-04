@@ -26,6 +26,9 @@ export interface Equipement extends EquipementData {
     nom: string;
   };
   energie_avec_unite?: string;
+  energie?: number;
+  energie_mensuelle?: number;
+  energie_annuelle?: number;
   created_at?: string;
   updated_at?: string;
 }

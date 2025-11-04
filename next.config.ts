@@ -8,9 +8,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  experimental: {
-    serverComponentsExternalPackages: ['services'],
-  },
+  serverExternalPackages: ['services'],
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,

@@ -1,20 +1,20 @@
 import api from './api';
 import axios from 'axios';
 
-// Services pour les Prises Ã‰lectriques
+// Services pour les Prises Électriques
 export const priseElectriqueService = {
-  // RÃ©cupÃ©rer toutes les prises d'une installation
+  // Récupérer toutes les prises d'une installation
   getByInstallation: async (installationId) => {
     try {
       const response = await api.get(`/prises-electriques?installation_id=${installationId}`);
       return response.data;
     } catch (error) {
-      console.warn('Erreur lors de la rÃ©cupÃ©ration des prises:', error);
+      console.warn('Erreur lors de la récupération des prises:', error);
       throw error;
     }
   },
 
-  // CrÃ©er une nouvelle prise
+  // Créer une nouvelle prise
   create: async (priseData) => {
     try {
       // Si pas de photos, envoyer en JSON
@@ -28,10 +28,10 @@ export const priseElectriqueService = {
       // Sinon utiliser FormData pour les photos
       const formData = new FormData();
       
-      // Ajouter les donnÃ©es de base
+      // Ajouter les données de base
       Object.keys(priseData).forEach(key => {
         if (key !== 'photos' && priseData[key] !== null && priseData[key] !== undefined) {
-          // Convertir les boolÃ©ens en entiers pour Laravel
+          // Convertir les booléens en entiers pour Laravel
           if (typeof priseData[key] === 'boolean') {
             formData.append(key, priseData[key] ? '1' : '0');
           } else {
@@ -39,20 +39,23 @@ export const priseElectriqueService = {
           }
         }
       });
-
-      // Ajouter les photos si elles existent
+      
+      // Ajouter les photos avec le bon nom de champ
       if (priseData.photos && priseData.photos.length > 0) {
-        priseData.photos.forEach((photo, index) => {
-          formData.append(`photo_prise[${index}]`, photo);
+        priseData.photos.forEach(photo => {
+          formData.append('photo_prise[]', photo);
         });
       }
-
+      
       const response = await api.post('/prises-electriques', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
+      
       return response.data;
     } catch (error) {
-      console.warn('Erreur lors de la crÃ©ation de la prise:', error);
+      console.warn('Erreur lors de la création de la prise:', error);
       if (error.response) {
         console.warn('Status:', error.response.status);
         console.warn('Réponse du serveur:', error.response.data);
@@ -61,31 +64,24 @@ export const priseElectriqueService = {
     }
   },
 
-  // Mettre Ã  jour une prise
+  // Mettre à jour une prise
   update: async (id, priseData) => {
     try {
-      // Si pas de nouvelles photos, utiliser JSON avec PUT direct
+      // Si pas de photos, envoyer en JSON
       if (!priseData.photos || priseData.photos.length === 0) {
         const jsonData = { ...priseData };
         delete jsonData.photos;
-        delete jsonData.id;
-        
-        // Convertir les boolÃ©ens en entiers pour Laravel
-        if (typeof jsonData.avec_terre === 'boolean') {
-          jsonData.avec_terre = jsonData.avec_terre ? 1 : 0;
-        }
         const response = await api.put(`/prises-electriques/${id}`, jsonData);
         return response.data;
       }
       
       // Sinon utiliser FormData pour les photos
       const formData = new FormData();
-      formData.append('_method', 'PUT');
       
-      // Ajouter les donnÃ©es de base
+      // Ajouter les données de base
       Object.keys(priseData).forEach(key => {
-        if (key !== 'photos' && key !== 'id' && priseData[key] !== null && priseData[key] !== undefined) {
-          // Convertir les boolÃ©ens en entiers pour Laravel
+        if (key !== 'photos' && priseData[key] !== null && priseData[key] !== undefined) {
+          // Convertir les booléens en entiers pour Laravel
           if (typeof priseData[key] === 'boolean') {
             formData.append(key, priseData[key] ? '1' : '0');
           } else {
@@ -93,18 +89,26 @@ export const priseElectriqueService = {
           }
         }
       });
-
-      // Ajouter les nouvelles photos
-      priseData.photos.forEach((photo, index) => {
-        formData.append(`photo_prise[${index}]`, photo);
-      });
-
+      
+      // Ajouter les photos avec le bon nom de champ
+      if (priseData.photos && priseData.photos.length > 0) {
+        priseData.photos.forEach(photo => {
+          formData.append('photo_prise[]', photo);
+        });
+      }
+      
+      // Ajouter _method=PUT pour Laravel
+      formData.append('_method', 'PUT');
+      
       const response = await api.post(`/prises-electriques/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
+      
       return response.data;
     } catch (error) {
-      console.warn('Erreur lors de la mise Ã  jour de la prise:', error);
+      console.warn('Erreur lors de la mise à jour de la prise:', error);
       if (error.response) {
         console.warn('Status:', error.response.status);
         console.warn('Réponse du serveur:', error.response.data);
@@ -128,13 +132,13 @@ export const priseElectriqueService = {
     }
   },
 
-  // RÃ©cupÃ©rer une prise spÃ©cifique
+  // Récupérer une prise spécifique
   getById: async (id) => {
     try {
       const response = await api.get(`/prises-electriques/${id}`);
       return response.data;
     } catch (error) {
-      console.warn('Erreur lors de la rÃ©cupÃ©ration de la prise:', error);
+      console.warn('Erreur lors de la récupération de la prise:', error);
       throw error;
     }
   }
@@ -142,18 +146,18 @@ export const priseElectriqueService = {
 
 // Services pour les Interrupteurs
 export const interrupteurService = {
-  // RÃ©cupÃ©rer tous les interrupteurs d'une installation
+  // Récupérer tous les interrupteurs d'une installation
   getByInstallation: async (installationId) => {
     try {
       const response = await api.get(`/interrupteurs?installation_id=${installationId}`);
       return response.data;
     } catch (error) {
-      console.warn('Erreur lors de la rÃ©cupÃ©ration des interrupteurs:', error);
+      console.warn('Erreur lors de la récupération des interrupteurs:', error);
       throw error;
     }
   },
 
-  // CrÃ©er un nouveau interrupteur
+  // Créer un nouveau interrupteur
   create: async (interrupteurData) => {
     try {
       // Si pas de photos, envoyer en JSON
@@ -167,10 +171,10 @@ export const interrupteurService = {
       // Sinon utiliser FormData pour les photos
       const formData = new FormData();
       
-      // Ajouter les donnÃ©es de base
+      // Ajouter les données de base
       Object.keys(interrupteurData).forEach(key => {
         if (key !== 'photos' && interrupteurData[key] !== null && interrupteurData[key] !== undefined) {
-          // Convertir les boolÃ©ens en entiers pour Laravel
+          // Convertir les booléens en entiers pour Laravel
           if (typeof interrupteurData[key] === 'boolean') {
             formData.append(key, interrupteurData[key] ? '1' : '0');
           } else {
@@ -178,47 +182,49 @@ export const interrupteurService = {
           }
         }
       });
-
-      // Ajouter les photos si elles existent
+      
+      // Ajouter les photos avec le bon nom de champ
       if (interrupteurData.photos && interrupteurData.photos.length > 0) {
-        interrupteurData.photos.forEach((photo, index) => {
-          formData.append(`photo_interrupteur[${index}]`, photo);
+        interrupteurData.photos.forEach(photo => {
+          formData.append('photo_interrupteur[]', photo);
         });
       }
-
+      
       const response = await api.post('/interrupteurs', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
+      
       return response.data;
     } catch (error) {
-      console.warn('Erreur lors de la crÃ©ation de l\'interrupteur:', error);
+      console.warn('Erreur lors de la création de l\'interrupteur:', error);
       if (error.response) {
+        console.warn('Status:', error.response.status);
         console.warn('Réponse du serveur:', error.response.data);
       }
       throw error;
     }
   },
 
-  // Mettre Ã  jour un interrupteur
+  // Mettre à jour un interrupteur
   update: async (id, interrupteurData) => {
     try {
-      // Si pas de nouvelles photos, utiliser JSON avec PUT direct
+      // Si pas de photos, envoyer en JSON
       if (!interrupteurData.photos || interrupteurData.photos.length === 0) {
         const jsonData = { ...interrupteurData };
         delete jsonData.photos;
-        delete jsonData.id;
         const response = await api.put(`/interrupteurs/${id}`, jsonData);
         return response.data;
       }
       
       // Sinon utiliser FormData pour les photos
       const formData = new FormData();
-      formData.append('_method', 'PUT');
       
-      // Ajouter les donnÃ©es de base
+      // Ajouter les données de base
       Object.keys(interrupteurData).forEach(key => {
-        if (key !== 'photos' && key !== 'id' && interrupteurData[key] !== null && interrupteurData[key] !== undefined) {
-          // Convertir les boolÃ©ens en entiers pour Laravel
+        if (key !== 'photos' && interrupteurData[key] !== null && interrupteurData[key] !== undefined) {
+          // Convertir les booléens en entiers pour Laravel
           if (typeof interrupteurData[key] === 'boolean') {
             formData.append(key, interrupteurData[key] ? '1' : '0');
           } else {
@@ -226,18 +232,26 @@ export const interrupteurService = {
           }
         }
       });
-
-      // Ajouter les nouvelles photos
-      interrupteurData.photos.forEach((photo, index) => {
-        formData.append(`photo_interrupteur[${index}]`, photo);
-      });
-
+      
+      // Ajouter les photos avec le bon nom de champ
+      if (interrupteurData.photos && interrupteurData.photos.length > 0) {
+        interrupteurData.photos.forEach(photo => {
+          formData.append('photo_interrupteur[]', photo);
+        });
+      }
+      
+      // Ajouter _method=PUT pour Laravel
+      formData.append('_method', 'PUT');
+      
       const response = await api.post(`/interrupteurs/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
+      
       return response.data;
     } catch (error) {
-      console.warn('Erreur lors de la mise Ã  jour de l\'interrupteur:', error);
+      console.warn('Erreur lors de la mise à jour de l\'interrupteur:', error);
       if (error.response) {
         console.warn('Status:', error.response.status);
         console.warn('Réponse du serveur:', error.response.data);
@@ -261,13 +275,13 @@ export const interrupteurService = {
     }
   },
 
-  // RÃ©cupÃ©rer un interrupteur spÃ©cifique
+  // Récupérer un interrupteur spécifique
   getById: async (id) => {
     try {
       const response = await api.get(`/interrupteurs/${id}`);
       return response.data;
     } catch (error) {
-      console.warn('Erreur lors de la rÃ©cupÃ©ration de l\'interrupteur:', error);
+      console.warn('Erreur lors de la récupération de l\'interrupteur:', error);
       throw error;
     }
   }
@@ -337,69 +351,82 @@ export const installationService = {
         // Supprimer les champs photos vides
         const photoFields = [
           'photo_coffret',
-          'photo_cable_electrique', 
+          'photo_cable_electrique',
           'photo_type_cable',
           'photo_barette_coupure',
           'photo_terre_pc'
         ];
         
         photoFields.forEach(field => {
-          delete jsonData[field];
+          if (!jsonData[field]?.length) {
+            delete jsonData[field];
+          }
         });
-
+        
         const response = await api.post('/installations', jsonData);
         return response.data;
       }
       
-      // Sinon utiliser FormData pour les photos
+      // Sinon, envoyer en FormData pour les photos
       const formData = new FormData();
       
-      // Ajouter les donnÃ©es de base
+      // Ajouter les champs non-photo
       Object.keys(installationData).forEach(key => {
-        if (!key.startsWith('photo_') && installationData[key] !== null && installationData[key] !== undefined) {
-          // Convertir les boolÃ©ens en entiers pour Laravel
-          if (typeof installationData[key] === 'boolean') {
-            formData.append(key, installationData[key] ? '1' : '0');
-          } else {
-            formData.append(key, installationData[key]);
-          }
+        if (!key.startsWith('photo_')) {
+          // Forcer les booléens à être des nombres (1 ou 0)
+          const value = typeof installationData[key] === 'boolean' 
+            ? (installationData[key] ? 1 : 0) 
+            : installationData[key];
+          formData.append(key, value);
         }
       });
 
-      // Ajouter les photos si elles existent
+      // Ajouter un log pour vérifier les données des photos
+      console.log('Données des photos avant envoi:', {
+        photo_coffret: installationData.photo_coffret,
+        photo_cable_electrique: installationData.photo_cable_electrique,
+        photo_type_cable: installationData.photo_type_cable,
+        photo_barette_coupure: installationData.photo_barette_coupure,
+        photo_terre_pc: installationData.photo_terre_pc
+      });
+      
+      // Ajouter les photos
       const photoFields = [
         'photo_coffret',
-        'photo_cable_electrique', 
+        'photo_cable_electrique',
         'photo_type_cable',
         'photo_barette_coupure',
         'photo_terre_pc'
       ];
-
+      
       photoFields.forEach(field => {
-        if (installationData[field] && installationData[field].length > 0) {
-          installationData[field].forEach((photo, index) => {
-            formData.append(`${field}[${index}]`, photo);
+        if (installationData[field]?.length) {
+          installationData[field].forEach(photo => {
+            formData.append(`${field}[]`, photo);
           });
         }
       });
-
+      
       const response = await api.post('/installations', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
+      
       return response.data;
     } catch (error) {
-      console.warn('Erreur lors de la crÃ©ation de l\'installation:', error);
-      if (error.response) {
-        console.warn('Réponse du serveur:', error.response.data);
+      console.error('Erreur lors de la création de l\'installation:', error);
+      if (error.response?.data?.errors) {
+        console.error('Détails des erreurs de validation:', error.response.data.errors);
       }
       throw error;
     }
   },
 
-  // Mettre Ã  jour une installation
+  // Mettre à jour une installation
   update: async (id, installationData) => {
     try {
-      // Si pas de photos, envoyer en JSON avec PUT
+      // Si pas de photos, envoyer en JSON
       if (!installationData.photo_coffret?.length && 
           !installationData.photo_cable_electrique?.length &&
           !installationData.photo_type_cable?.length &&
@@ -411,62 +438,62 @@ export const installationService = {
         // Supprimer les champs photos vides
         const photoFields = [
           'photo_coffret',
-          'photo_cable_electrique', 
+          'photo_cable_electrique',
           'photo_type_cable',
           'photo_barette_coupure',
           'photo_terre_pc'
         ];
         
         photoFields.forEach(field => {
-          delete jsonData[field];
+          if (!jsonData[field]?.length) {
+            delete jsonData[field];
+          }
         });
-
+        
         const response = await api.put(`/installations/${id}`, jsonData);
         return response.data;
       }
       
-      // Sinon utiliser FormData pour les photos avec _method PUT
+      // Sinon, envoyer en FormData pour les photos avec _method PUT
       const formData = new FormData();
       formData.append('_method', 'PUT');
       
-      // Ajouter les donnÃ©es de base
+      // Ajouter les champs non-photo
       Object.keys(installationData).forEach(key => {
-        if (!key.startsWith('photo_') && installationData[key] !== null && installationData[key] !== undefined) {
-          // Convertir les boolÃ©ens en entiers pour Laravel
-          if (typeof installationData[key] === 'boolean') {
-            formData.append(key, installationData[key] ? '1' : '0');
-          } else {
-            formData.append(key, installationData[key]);
-          }
+        if (!key.startsWith('photo_')) {
+          formData.append(key, installationData[key]);
         }
       });
-
-      // Ajouter les nouvelles photos si elles existent
+      
+      // Ajouter les photos
       const photoFields = [
         'photo_coffret',
-        'photo_cable_electrique', 
+        'photo_cable_electrique',
         'photo_type_cable',
         'photo_barette_coupure',
         'photo_terre_pc'
       ];
-
+      
       photoFields.forEach(field => {
-        if (installationData[field] && installationData[field].length > 0) {
-          installationData[field].forEach((photo, index) => {
-            formData.append(`${field}[${index}]`, photo);
+        if (installationData[field]?.length) {
+          installationData[field].forEach(photo => {
+            formData.append(`${field}[]`, photo);
           });
         }
       });
-
+      
+      // Ajouter _method=PUT pour Laravel
+      formData.append('_method', 'PUT');
+      
       const response = await api.post(`/installations/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
+      
       return response.data;
     } catch (error) {
-      console.warn('Erreur lors de la mise à jour de l\'installation:', error);
-      if (error.response) {
-        console.warn('Réponse du serveur:', error.response.data);
-      }
+      console.error('Erreur lors de la mise à jour de l\'installation:', error);
       throw error;
     }
   },
@@ -477,21 +504,7 @@ export const installationService = {
       const response = await api.delete(`/installations/${id}`);
       return response.data;
     } catch (error) {
-      console.warn('Erreur lors de la suppression de l\'installation:', error);
-      if (error.response) {
-        console.warn('Réponse du serveur:', error.response.data);
-      }
-      throw error;
-    }
-  },
-
-  // RÃ©cupÃ©rer une installation spÃ©cifique
-  getById: async (id) => {
-    try {
-      const response = await api.get(`/installations/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la rÃ©cupÃ©ration de l\'installation:', error);
+      console.error('Erreur lors de la suppression de l\'installation:', error);
       throw error;
     }
   }
@@ -500,9 +513,9 @@ export const installationService = {
 // Services pour les Équipements
 export const equipementService = {
   // Récupérer tous les équipements
-  getAll: async () => {
+  getAll: async (params = {}) => {
     try {
-      const response = await api.get('/equipements');
+      const response = await api.get('/equipements', { params });
       return response.data;
     } catch (error) {
       console.warn('Erreur lors de la récupération des équipements:', error);
@@ -521,35 +534,46 @@ export const equipementService = {
     }
   },
 
-  // Créer un nouvel équipement
-  create: async (equipementData) => {
+  // Récupérer les détails énergétiques
+  getDetailsEnergetiques: async (id) => {
     try {
-      // Si pas de photos, envoyer en JSON
-      if (!equipementData.photos || equipementData.photos.length === 0) {
-        const jsonData = { ...equipementData };
-        delete jsonData.photos;
-        const response = await api.post('/equipements', jsonData);
+      const response = await api.get(`/equipements/${id}/details-energetiques`);
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la récupération des détails énergétiques:', error);
+      throw error;
+    }
+  },
+
+  // Créer un nouvel équipement
+  create: async (data) => {
+    try {
+      // Si des photos sont présentes (fichiers), utiliser FormData
+      const hasRealPhotos = [data.photo1, data.photo2, data.photo3].some(photo => 
+        photo && typeof photo === 'object' && 'type' in photo && photo.type?.startsWith('image/')
+      );
+      
+      if (hasRealPhotos) {
+        const formData = new FormData();
+        // Ajouter les données de base
+        Object.keys(data).forEach(key => {
+          if (!key.startsWith('photo')) {
+            formData.append(key, data[key]);
+          }
+        });
+        // Ajouter uniquement les vraies photos (fichiers) comme tableau
+        if (data.photo1 && typeof data.photo1 === 'object' && 'type' in data.photo1) formData.append('photo[]', data.photo1);
+        if (data.photo2 && typeof data.photo2 === 'object' && 'type' in data.photo2) formData.append('photo[]', data.photo2);
+        if (data.photo3 && typeof data.photo3 === 'object' && 'type' in data.photo3) formData.append('photo[]', data.photo3);
+        
+        const response = await api.post('/equipements', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
         return response.data;
       }
-      
-      // Sinon utiliser FormData pour les photos
-      const formData = new FormData();
-      
-      // Ajouter les données de base
-      Object.keys(equipementData).forEach(key => {
-        if (key !== 'photos' && equipementData[key] !== null && equipementData[key] !== undefined) {
-          formData.append(key, equipementData[key]);
-        }
-      });
-
-      // Ajouter les photos
-      equipementData.photos.forEach((photo, index) => {
-        formData.append(`photo[${index}]`, photo);
-      });
-
-      const response = await api.post('/equipements', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.post('/equipements', data);
       return response.data;
     } catch (error) {
       console.warn('Erreur lors de la création de l\'équipement:', error);
@@ -561,36 +585,34 @@ export const equipementService = {
   },
 
   // Mettre à jour un équipement
-  update: async (id, equipementData) => {
+  update: async (id, data) => {
     try {
-      // Si pas de nouvelles photos, utiliser JSON avec PUT
-      if (!equipementData.photos || equipementData.photos.length === 0) {
-        const jsonData = { ...equipementData };
-        delete jsonData.photos;
-        delete jsonData.id;
-        const response = await api.put(`/equipements/${id}`, jsonData);
+      // Si des photos sont présentes (fichiers), utiliser FormData
+      const hasRealPhotos = [data.photo1, data.photo2, data.photo3].some(photo => 
+        photo && typeof photo === 'object' && 'type' in photo && photo.type?.startsWith('image/')
+      );
+      
+      if (hasRealPhotos) {
+        const formData = new FormData();
+        // Ajouter les données de base
+        Object.keys(data).forEach(key => {
+          if (!key.startsWith('photo')) {
+            formData.append(key, data[key]);
+          }
+        });
+        // Ajouter uniquement les vraies photos (fichiers) comme tableau
+        if (data.photo1 && typeof data.photo1 === 'object' && 'type' in data.photo1) formData.append('photo[]', data.photo1);
+        if (data.photo2 && typeof data.photo2 === 'object' && 'type' in data.photo2) formData.append('photo[]', data.photo2);
+        if (data.photo3 && typeof data.photo3 === 'object' && 'type' in data.photo3) formData.append('photo[]', data.photo3);
+        
+        const response = await api.put(`/equipements/${id}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
         return response.data;
       }
-      
-      // Sinon utiliser FormData pour les photos
-      const formData = new FormData();
-      formData.append('_method', 'PUT');
-      
-      // Ajouter les données de base
-      Object.keys(equipementData).forEach(key => {
-        if (key !== 'photos' && key !== 'id' && equipementData[key] !== null && equipementData[key] !== undefined) {
-          formData.append(key, equipementData[key]);
-        }
-      });
-
-      // Ajouter les nouvelles photos
-      equipementData.photos.forEach((photo, index) => {
-        formData.append(`photo[${index}]`, photo);
-      });
-
-      const response = await api.post(`/equipements/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.put(`/equipements/${id}`, data);
       return response.data;
     } catch (error) {
       console.warn('Erreur lors de la mise à jour de l\'équipement:', error);
@@ -612,16 +634,17 @@ export const equipementService = {
     }
   },
 
-  // Ajouter des photos à un équipement existant
+  // Upload de photos (fichiers)
   uploadPhotos: async (id, photos) => {
     try {
       const formData = new FormData();
-      photos.forEach((photo, index) => {
-        formData.append(`photo[${index}]`, photo);
+      photos.forEach(photo => {
+        if (photo) formData.append('photo[]', photo);
       });
-
       const response = await api.post(`/equipements/${id}/photos`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       return response.data;
     } catch (error) {
@@ -630,26 +653,13 @@ export const equipementService = {
     }
   },
 
-  // Ajouter des photos depuis la caméra
-  addCameraPhotos: async (id, photosBase64) => {
+  // Upload de photos capturées par caméra (base64)
+  uploadCameraPhotos: async (id, photos) => {
     try {
-      const response = await api.post(`/equipements/${id}/camera-photos`, {
-        photos: photosBase64
-      });
+      const response = await api.post(`/equipements/${id}/photos-camera`, { photos });
       return response.data;
     } catch (error) {
       console.warn('Erreur lors de l\'ajout des photos de la caméra:', error);
-      throw error;
-    }
-  },
-
-  // Récupérer les détails énergétiques
-  getDetailsEnergetiques: async (id) => {
-    try {
-      const response = await api.get(`/equipements/${id}/details-energetiques`);
-      return response.data;
-    } catch (error) {
-      console.warn('Erreur lors de la récupération des détails énergétiques:', error);
       throw error;
     }
   },
@@ -661,6 +671,112 @@ export const equipementService = {
       return response.data;
     } catch (error) {
       console.warn('Erreur lors du calcul de l\'énergie:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer les types de valeurs
+  getTypesValeurs: async () => {
+    try {
+      const response = await api.get('/equipements/types-valeurs');
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la récupération des types de valeurs:', error);
+      throw error;
+    }
+  }
+};
+
+// Services pour les Pièces
+export const pieceService = {
+  // Récupérer toutes les pièces
+  getAll: async () => {
+    try {
+      const response = await api.get('/pieces');
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la récupération des pièces:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer une pièce spécifique
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/pieces/${id}`);
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la récupération de la pièce:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer le résumé énergétique d'une pièce
+  getResumeEnergetique: async (id) => {
+    try {
+      const response = await api.get(`/pieces/${id}/resume-energetique`);
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la récupération du résumé énergétique:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer les résumés énergétiques des pièces
+  getResumesEnergetiques: async (batiment_id) => {
+    try {
+      const response = await api.get('/pieces-resumes-energetiques', {
+        params: batiment_id ? { batiment_id } : {}
+      });
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la récupération des résumés énergétiques:', error);
+      throw error;
+    }
+  },
+
+  // Créer une nouvelle pièce
+  create: async (data) => {
+    try {
+      const response = await api.post('/pieces', data);
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la création de la pièce:', error);
+      throw error;
+    }
+  },
+
+  // Mettre à jour une pièce
+  update: async (id, data) => {
+    try {
+      const response = await api.put(`/pieces/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la mise à jour de la pièce:', error);
+      throw error;
+    }
+  },
+
+  // Supprimer une pièce
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/pieces/${id}`);
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la suppression de la pièce:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer les pièces d'un bâtiment
+  getByBatiment: async (batiment_id) => {
+    try {
+      const response = await api.get('/pieces', {
+        params: { batiment_id }
+      });
+      return response.data;
+    } catch (error) {
+      console.warn('Erreur lors de la récupération des pièces du bâtiment:', error);
       throw error;
     }
   }

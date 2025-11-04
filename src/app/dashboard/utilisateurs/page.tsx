@@ -101,7 +101,7 @@ export default function UtilisateursPage() {
   // Charger les données
   const loadData = async () => {
     try {
-      const response = await apiHelpers.techniciens.getAll();
+      const response = await apiHelpers.utilisateurs.getAll();
       setUtilisateurs(response.data?.data || []);
     } catch (error) {
       toast({
@@ -161,9 +161,14 @@ export default function UtilisateursPage() {
   // Vérifier si le formulaire est valide
   const isFormValid = () => {
     if (!formData.nom || !formData.prenom || !formData.email) return false;
+    // Mot de passe obligatoire pour la création, optionnel pour la modification
     if (!editingId && (!formData.mot_de_passe || formData.mot_de_passe.length < 6))
       return false;
+    // Si un mot de passe est fourni (création ou modification), vérifier qu'il correspond à la confirmation
     if (formData.mot_de_passe && formData.mot_de_passe !== formData.mot_de_passe_confirmation)
+      return false;
+    // Si un mot de passe est fourni en modification, vérifier qu'il fait au moins 6 caractères
+    if (editingId && formData.mot_de_passe && formData.mot_de_passe.length < 6)
       return false;
     return true;
   };
@@ -182,17 +187,18 @@ export default function UtilisateursPage() {
     setLoading(true);
     try {
       const dataToSend: any = { ...formData };
-      // Ne pas envoyer le mot de passe si vide en mode édition
-      if (editingId && !dataToSend.mot_de_passe) {
+      // Supprimer la confirmation du mot de passe avant l'envoi
+      delete dataToSend.mot_de_passe_confirmation;
+      // Supprimer le mot de passe si vide
+      if (!dataToSend.mot_de_passe) {
         delete dataToSend.mot_de_passe;
-        delete dataToSend.mot_de_passe_confirmation;
       }
 
       if (editingId) {
-        await apiHelpers.techniciens.update(editingId, dataToSend);
+        await apiHelpers.utilisateurs.update(editingId, dataToSend);
         toast({ title: "Succès", description: "Utilisateur modifié" });
       } else {
-        await apiHelpers.techniciens.create(dataToSend);
+        await apiHelpers.utilisateurs.create(dataToSend);
         toast({ title: "Succès", description: "Utilisateur créé" });
       }
 
@@ -222,7 +228,7 @@ export default function UtilisateursPage() {
 
     setLoading(true);
     try {
-      await apiHelpers.techniciens.delete(userToDelete);
+      await apiHelpers.utilisateurs.delete(userToDelete);
       toast({ title: "Succès", description: "Utilisateur supprimé" });
       await loadData();
     } catch (error) {

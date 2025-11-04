@@ -45,16 +45,9 @@ import {
   X,
 } from "lucide-react";
 
-interface Equipement {
-  id: number;
-  nom_equipement: string;
-  piece_id: number;
-  type_equipement_id: number;
-  nombre: number;
-  valeur_mesuree: number;
-  type_valeur: string;
-  tension?: number;
-  courant?: number;
+import { Equipement as EquipementType } from "@/types/equipment";
+
+interface Equipement extends EquipementType {
   facteur_puissance: number;
   // Temps détaillés par jour
   lundi_diurne?: number;
@@ -81,8 +74,8 @@ interface Equipement {
   photo1?: string;
   photo2?: string;
   photo3?: string;
-  piece?: { nom_piece: string; batiment?: { nom_batiment: string } };
-  type_equipement?: { nom: string };
+  piece?: { id: number; nom_piece: string; batiment?: { id: number; nom_batiment: string } };
+  type_equipement?: { id: number; nom: string };
   energie_avec_unite?: string;
   energie_mensuelle_avec_unite?: string;
   energie_annuelle_avec_unite?: string;
@@ -193,26 +186,20 @@ export default function EquipementsPage() {
 
   // Effet pour surveiller les changements de showCamera
   useEffect(() => {
-    console.log('showCamera a changé:', showCamera);
+    // Surveillance de l'état de la caméra
   }, [showCamera]);
 
   // Ouvrir la caméra
   const handleCameraCapture = async (photoIndex: number) => {
     try {
-      console.log('handleCameraCapture appelé avec index:', photoIndex);
-      
       // Vérifier si mediaDevices est disponible
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('La capture de photo n\'est pas supportée sur cet appareil');
       }
-
-      console.log('mediaDevices disponible, énumération des caméras...');
       
       // Récupérer la liste des caméras disponibles
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
-      
-      console.log('Caméras disponibles:', videoDevices);
 
       // Définir les contraintes de base
       let constraints: MediaStreamConstraints = {
@@ -224,8 +211,6 @@ export default function EquipementsPage() {
         audio: false
       };
 
-      console.log('Contraintes initiales:', constraints);
-
       // Si on est sur mobile et qu'il y a plusieurs caméras, essayer d'utiliser la caméra arrière
       if (videoDevices.length > 1 && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         const rearCamera = videoDevices.find(device => 
@@ -236,29 +221,19 @@ export default function EquipementsPage() {
             ...constraints.video as MediaTrackConstraints,
             deviceId: { exact: rearCamera.deviceId }
           };
-          console.log('Caméra arrière trouvée, nouvelles contraintes:', constraints);
         }
       }
-
-      console.log('Demande d\'accès à la caméra...');
       
       // Demander l'accès à la caméra avec les contraintes
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
-      console.log('Flux vidéo obtenu:', stream);
-      
       if (videoRef.current) {
-        console.log('Affectation du flux à la vidéo...');
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setCurrentPhotoIndex(photoIndex);
         setShowCamera(true);
-        console.log('Modal caméra ouverte, showCamera:', true);
-      } else {
-        console.log('Erreur: videoRef.current est null');
       }
     } catch (error) {
-      console.error('Erreur d\'accès à la caméra:', error);
       toast({
         title: "Erreur",
         description: "Impossible d'accéder à la caméra. Vérifiez que vous avez autorisé l'accès à la caméra dans votre navigateur.",
@@ -314,32 +289,53 @@ export default function EquipementsPage() {
   // Charger les données
   const loadData = async () => {
     try {
-      console.log('Début du chargement des données...');
-      
       const [equipementsRes, piecesRes, typesRes] = await Promise.all([
         apiHelpers.equipements.getAll(),
         apiHelpers.pieces.getAll(),
         apiHelpers.typesEquipement.getAll(),
       ]);
 
-      console.log('Résultat équipements:', equipementsRes);
-      console.log('Résultat pièces:', piecesRes);
-      console.log('Résultat types:', typesRes);
-
-      // Debug: vérifier la structure exacte des données
-      console.log('Structure equipementsRes.data:', equipementsRes.data);
-      console.log('Type de equipementsRes.data:', typeof equipementsRes.data);
-      console.log('Est-ce un tableau?', Array.isArray(equipementsRes.data));
-      console.log('Structure typesRes.data:', typesRes.data);
-
       // Corriger l'accès aux données basé sur la structure réelle de l'API
       setEquipements(equipementsRes.data?.data || []);
-      setPieces(piecesRes.data || []);
-      setTypesEquipement(typesRes.data?.data || []);
       
-      // Debug: vérifier les données des pièces
-      console.log('Pièces chargées:', piecesRes.data);
-      console.log('Structure des pièces:', piecesRes.data?.[0]);
+      // Gérer la structure des pièces selon le format de l'API
+      let piecesData = [];
+      
+      if (Array.isArray(piecesRes.data)) {
+        // Format simple : tableau direct
+        piecesData = piecesRes.data;
+      } else if (piecesRes.data?.data && Array.isArray(piecesRes.data.data)) {
+        // Format avec wrapper data: { data: [...] }
+        piecesData = piecesRes.data.data;
+      } else if (piecesRes.data?.pieces && Array.isArray(piecesRes.data.pieces)) {
+        // Format avec wrapper pieces: { pieces: [...] }
+        piecesData = piecesRes.data.pieces;
+      } else {
+        // Tentative de récupération depuis d'autres structures
+        if (piecesRes.data && typeof piecesRes.data === 'object') {
+          // Essayer de trouver un tableau dans l'objet
+          const arrayKeys = Object.keys(piecesRes.data).filter(key => 
+            Array.isArray(piecesRes.data[key])
+          );
+          if (arrayKeys.length > 0) {
+            piecesData = piecesRes.data[arrayKeys[0]];
+          }
+        }
+      }
+      
+      setPieces(piecesData);
+      
+      // Gérer les types d'équipement
+      let typesEquipementData = [];
+      if (Array.isArray(typesRes.data)) {
+        typesEquipementData = typesRes.data;
+      } else if (typesRes.data?.data && Array.isArray(typesRes.data.data)) {
+        typesEquipementData = typesRes.data.data;
+      } else if (typesRes.data?.types && Array.isArray(typesRes.data.types)) {
+        typesEquipementData = typesRes.data.types;
+      }
+      
+      setTypesEquipement(typesEquipementData);
     } catch (error) {
       toast({
         title: "Erreur",
@@ -352,17 +348,17 @@ export default function EquipementsPage() {
   };
 
   useEffect(() => {
-    // Debug: vérifier si l'utilisateur est authentifié
+    // Vérifier si l'utilisateur est authentifié
     const token = localStorage.getItem('auth_token');
     const user = localStorage.getItem('user');
-    console.log('Token présent:', !!token);
-    console.log('Utilisateur présent:', !!user);
     
-    if (token) {
-      console.log('Token:', token.substring(0, 20) + '...');
-    }
-    if (user) {
-      console.log('Utilisateur:', JSON.parse(user));
+    if (!token) {
+      toast({
+        title: "Erreur d'authentification",
+        description: "Veuillez vous reconnecter",
+        variant: "destructive",
+      });
+      return;
     }
     
     loadData();
@@ -478,56 +474,9 @@ export default function EquipementsPage() {
     try {
       const response = await apiHelpers.equipements.getById(equipement.id);
       const equipementDetails = response.data.data;
-      console.log("Détails de l'équipement:", equipementDetails);
 
       // Convertir le tableau de photos en photo1, photo2, photo3
       const photos = equipementDetails.photos || [];
-      console.log("Photos de l'équipement:", photos);
-
-      setFormData({
-        nom_equipement: equipement.nom_equipement,
-        piece_id: equipement.piece_id,
-        type_equipement_id: equipement.type_equipement_id,
-        nombre: Math.round(equipement.nombre || 0),
-        valeur_mesuree: Math.round(equipement.valeur_mesuree || 0),
-        type_valeur: equipement.type_valeur,
-        tension: Math.round(equipement.tension || 0),
-        courant: Math.round(equipement.courant || 0),
-        facteur_puissance: equipement.facteur_puissance,
-        lundi_diurne: Math.round(equipement.lundi_diurne || 0),
-        lundi_nocturne: Math.round(equipement.lundi_nocturne || 0),
-        mardi_diurne: Math.round(equipement.mardi_diurne || 0),
-        mardi_nocturne: Math.round(equipement.mardi_nocturne || 0),
-        mercredi_diurne: Math.round(equipement.mercredi_diurne || 0),
-        mercredi_nocturne: Math.round(equipement.mercredi_nocturne || 0),
-        jeudi_diurne: Math.round(equipement.jeudi_diurne || 0),
-        jeudi_nocturne: Math.round(equipement.jeudi_nocturne || 0),
-        vendredi_diurne: Math.round(equipement.vendredi_diurne || 0),
-        vendredi_nocturne: Math.round(equipement.vendredi_nocturne || 0),
-        samedi_diurne: Math.round(equipement.samedi_diurne || 0),
-        samedi_nocturne: Math.round(equipement.samedi_nocturne || 0),
-        dimanche_diurne: Math.round(equipement.dimanche_diurne || 0),
-        dimanche_nocturne: Math.round(equipement.dimanche_nocturne || 0),
-        photo1: photos[0] || "",
-        photo2: photos[1] || "",
-        photo3: photos[2] || "",
-        // Temps détaillés par jour (utiliser les moyennes pour remplir les champs)
-        lundi_diurne: equipement.lundi_diurne || 0,
-        lundi_nocturne: equipement.lundi_nocturne || 0,
-        mardi_diurne: equipement.mardi_diurne || 0,
-        mardi_nocturne: equipement.mardi_nocturne || 0,
-        mercredi_diurne: equipement.mercredi_diurne || 0,
-        mercredi_nocturne: equipement.mercredi_nocturne || 0,
-        jeudi_diurne: equipement.jeudi_diurne || 0,
-        jeudi_nocturne: equipement.jeudi_nocturne || 0,
-        vendredi_diurne: equipement.vendredi_diurne || 0,
-        vendredi_nocturne: equipement.vendredi_nocturne || 0,
-        samedi_diurne: equipement.samedi_diurne || 0,
-        samedi_nocturne: equipement.samedi_nocturne || 0,
-        dimanche_diurne: equipement.dimanche_diurne || 0,
-        dimanche_nocturne: equipement.dimanche_nocturne || 0,
-
-      });
 
       // Mettre à jour les prévisualisations avec les URLs des photos existantes
       setPhotoPreviews([
@@ -602,7 +551,7 @@ export default function EquipementsPage() {
       const newPhotos = [formData.photo1, formData.photo2, formData.photo3]
         .filter((photo): photo is File => {
           // Accepter uniquement les fichiers image (pas les URLs)
-          return Boolean(photo) && typeof photo === 'object' && 'type' in photo && photo.type.startsWith('image/');
+          return Boolean(photo) && photo instanceof File && photo.type.startsWith('image/');
         });
       
       // Si on modifie uniquement les photos, on envoie les photos et les valeurs existantes des temps d'utilisation

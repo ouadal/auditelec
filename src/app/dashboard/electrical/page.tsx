@@ -108,6 +108,12 @@ export default function ElectricalPage() {
     try {
       setLoading(true);
 
+      // Forcer les champs à être des booléens
+      formData.protection_terre = Boolean(formData.protection_terre);
+      formData.barette_de_coupure = Boolean(formData.barette_de_coupure);
+      formData.terre_dans_pc = Boolean(formData.terre_dans_pc);
+      formData.presence_differentiel = Boolean(formData.presence_differentiel);
+
       if (editingInstallation) {
         await installationService.update(editingInstallation.id!, formData);
         toast({

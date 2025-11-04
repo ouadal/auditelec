@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import { priseElectriqueService } from "../../../services/electricalApi";
 import { PriseElectrique, PriseElectriqueForm } from "@/types/electrical";
 import { ImageModal } from "@/components/ui/image-modal";
+import { ReactNode } from "react";
 
 interface PriseElectriqueSectionProps {
   installationId?: number;
@@ -50,12 +51,13 @@ interface PriseElectriqueSectionProps {
 
 export function PriseElectriqueSection({
   installationId = 1,
-}: PriseElectriqueSectionProps) {
+}: PriseElectriqueSectionProps): ReactNode {
   const [prises, setPrises] = useState<PriseElectrique[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showPriseForm, setShowPriseForm] = useState(false);
   const [editingPrise, setEditingPrise] = useState<PriseElectrique | null>(null);
   const [modalImages, setModalImages] = useState<string[]>([]);
   const [modalCurrentIndex, setModalCurrentIndex] = useState(0);
@@ -102,33 +104,28 @@ export function PriseElectriqueSection({
     }
   };
 
-  const handleAddPrise = async (formData: PriseElectriqueForm) => {
+  const handleAddPrise = async (data: PriseElectriqueForm) => {
     try {
       setSaving(true);
-      const response = await priseElectriqueService.create(formData);
+      
+      console.log("Données envoyées au service:", data);
+
+      const response = await priseElectriqueService.create(data);
       if (response.success) {
         toast({
           title: "Succès",
           description: "Prise électrique ajoutée avec succès",
         });
         setShowAddModal(false);
+        setShowPriseForm(false);
         await loadPrises();
       }
     } catch (error: any) {
       console.error("Erreur lors de l'ajout de la prise:", error);
-      console.error("Détails de l'erreur:", error.response?.data);
-      let errorMessage = "Erreur lors de l'ajout de la prise";
-      if (error.response?.data?.errors) {
-        const validationErrors = Object.values(
-          error.response.data.errors
-        ).flat();
-        errorMessage = validationErrors.join(", ");
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
+      console.log("Détails de l'erreur:", error.response?.data);
       toast({
-        title: "Erreur de validation",
-        description: errorMessage,
+        title: "Erreur",
+        description: "Impossible d'ajouter la prise électrique",
         variant: "destructive",
       });
     } finally {
@@ -141,55 +138,49 @@ export function PriseElectriqueSection({
     setShowEditModal(true);
   };
 
-  const handleUpdatePrise = async (formData: PriseElectriqueForm) => {
+  const handleUpdatePrise = async (data: PriseElectriqueForm) => {
     if (!editingPrise?.id) {
       console.error("❌ Pas d'ID pour la prise à modifier:", editingPrise);
       return;
     }
+
+    const formDataToSend = new FormData();
     
-    console.log("🔧 Modification de la prise:", {
-      id: editingPrise.id,
-      formData: formData
+    // Ajouter les champs de base
+    Object.keys(data).forEach((key) => {
+      if (key !== 'photos') {
+        formDataToSend.append(key, String(data[key as keyof PriseElectriqueForm]));
+      }
     });
     
-    try {
-      setSaving(true);
-      const response = await priseElectriqueService.update(editingPrise.id, formData);
-      console.log("✅ Réponse de modification:", response);
-      
-      if (response.success) {
-        toast({
-          title: "Succès",
-          description: "Prise électrique modifiée avec succès",
-        });
-        setShowEditModal(false);
-        setEditingPrise(null);
-        await loadPrises();
-      } else {
-        console.error("❌ Échec de la modification:", response);
-        toast({
-          title: "Erreur",
-          description: response.message || "Erreur lors de la modification",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("❌ Erreur lors de la modification:", error);
-      console.error("❌ Détails de l'erreur:", error.response?.data);
-      let errorMessage = "Erreur lors de la modification de la prise";
-      if (error.response?.data?.errors) {
-        const validationErrors = Object.values(error.response.data.errors).flat();
-        errorMessage = validationErrors.join(", ");
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
+    // Ajouter les photos avec le bon nom de champ
+    if (data.photos) {
+      data.photos.forEach((photo) => {
+        formDataToSend.append('photo_prise[]', photo);
+      });
+    }
+
+    console.log("FormData envoyé pour la mise à jour:");
+    for (const [key, value] of formDataToSend.entries()) {
+      console.log(key + ":", value);
+    }
+
+    const response = await priseElectriqueService.update(data.id!, formDataToSend);
+    if (response.success) {
       toast({
-        title: "Erreur de validation",
-        description: errorMessage,
+        title: "Succès",
+        description: "Prise électrique mise à jour avec succès",
+      });
+      await loadPrises();
+      setShowPriseForm(false);
+      setEditingPrise(null);
+    } else {
+      console.error("Erreur lors de la mise à jour de la prise:", response);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la prise électrique",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   };
 
