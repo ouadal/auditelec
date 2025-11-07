@@ -89,6 +89,44 @@ export default function EquipementsPageSimple() {
     loadData();
   }, []);
 
+  // Calcul d'énergie selon la formule spécifiée
+  const computeEnergyByFormula = () => {
+    // Calculer la puissance en watts
+    let puissance_W = 0;
+    
+    // Calcul de la puissance selon le type de mesure
+    if (formData.type_valeur === "puissance") {
+      puissance_W = formData.valeur_mesuree || 0;
+    } else if (formData.type_valeur === "courant" && formData.tension) {
+      puissance_W = formData.tension * (formData.valeur_mesuree || 0) * (formData.facteur_puissance || 1.0);
+    } else if (formData.type_valeur === "tension" && formData.courant) {
+      puissance_W = (formData.valeur_mesuree || 0) * formData.courant * (formData.facteur_puissance || 1.0);
+    } else if (formData.type_valeur === "energie") {
+      // Pour le type énergie, on utilise directement la valeur
+      puissance_W = (formData.valeur_mesuree || 0) * 1000 / 365 / 24; // Conversion kWh/an → W
+    }
+    
+    // Temps total journalier (diurne + nocturne)
+    const tempsJournalier = (formData.temps_diurne_journalier || 0) + (formData.temps_nocturne_journalier || 0);
+    
+    // Calculs selon votre formule
+    const energieJournaliere = (puissance_W / 1000) * formData.nombre * tempsJournalier; // kWh/jour
+    const energieSemaine = energieJournaliere * 5; // kWh/semaine (lundi à vendredi)
+    const energieWeekend = energieJournaliere * 2; // kWh/weekend (samedi à dimanche)
+    const energieHebdomadaire = energieSemaine + energieWeekend; // kWh/semaine
+    const energieMensuelle = energieJournaliere * 30; // kWh/mois
+    const energieAnnuelle = energieJournaliere * 365; // kWh/an
+    
+    return {
+      energieJournaliere,
+      energieSemaine,
+      energieWeekend,
+      energieHebdomadaire,
+      energieMensuelle,
+      energieAnnuelle
+    };
+  };
+
   // Calcul d'énergie côté client (miroir du backend)
   const computeEnergyDay = () => {
     const heures = formData.heures_utilisation_jour ?? 8;
@@ -409,24 +447,70 @@ export default function EquipementsPageSimple() {
               )}
             </div>
 
-            {/* Aperçu Énergie (calcul côté client) */}
-            <div className="rounded-md border p-4 bg-muted/30">
-              <div className="font-medium mb-2">Aperçu Énergie</div>
-              {(() => {
-                const eJour = computeEnergyDay();
-                const eAn = eJour * 365;
-                const eTotJour = eJour * (formData.nombre || 1);
-                const eTotAn = eAn * (formData.nombre || 1);
-                return (
+            {/* Temps diurne et nocturne */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Temps diurne journalier (h)</Label>
+                <Input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="24"
+                  value={formData.temps_diurne_journalier || 0}
+                  onChange={(e) => setFormData({ ...formData, temps_diurne_journalier: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <Label>Temps nocturne journalier (h)</Label>
+                <Input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="24"
+                  value={formData.temps_nocturne_journalier || 0}
+                  onChange={(e) => setFormData({ ...formData, temps_nocturne_journalier: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+
+          {/* Aperçu Énergie (calcul côté client) */}
+          <div className="rounded-md border p-4 bg-muted/30">
+            <div className="font-medium mb-2">Aperçu Énergie</div>
+            {(() => {
+              const eJour = computeEnergyDay();
+              const eAn = eJour * 365;
+              const eTotJour = eJour * (formData.nombre || 1);
+              const eTotAn = eAn * (formData.nombre || 1);
+              
+              // Calculs selon votre formule
+              const formule = computeEnergyByFormula();
+              
+              return (
+                <div className="space-y-3">
+                  {/* Calculs existants */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div>Énergie/jour: <span className="font-semibold">{eJour.toFixed(3)} kWh</span></div>
                     <div>Énergie/an: <span className="font-semibold">{eAn.toFixed(2)} kWh</span></div>
                     <div>Total/jour ({formData.nombre} u.): <span className="font-semibold">{eTotJour.toFixed(3)} kWh</span></div>
                     <div>Total/an ({formData.nombre} u.): <span className="font-semibold">{eTotAn.toFixed(2)} kWh</span></div>
                   </div>
-                );
-              })()}
-            </div>
+                  
+                  {/* Calculs selon votre formule */}
+                  <div className="border-t pt-2">
+                    <div className="font-medium text-blue-600 mb-1">Calcul selon votre formule:</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-xs">
+                      <div>Journalier: <span className="font-semibold">{formule.energieJournaliere.toFixed(3)} kWh/j</span></div>
+                      <div>Semaine (L-V): <span className="font-semibold">{formule.energieSemaine.toFixed(3)} kWh</span></div>
+                      <div>Weekend (S-D): <span className="font-semibold">{formule.energieWeekend.toFixed(3)} kWh</span></div>
+                      <div>Hebdomadaire: <span className="font-semibold">{formule.energieHebdomadaire.toFixed(3)} kWh/sem</span></div>
+                      <div>Mensuel: <span className="font-semibold">{formule.energieMensuelle.toFixed(2)} kWh/mois</span></div>
+                      <div>Annuel: <span className="font-semibold">{formule.energieAnnuelle.toFixed(2)} kWh/an</span></div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
 
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={resetForm}>

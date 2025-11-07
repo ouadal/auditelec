@@ -101,7 +101,7 @@ export const useEquipements = (
     nom_equipement: "",
     nombre: 1,
     valeur_mesuree: 0,
-    type_valeur: "puissance",
+    type_valeur: "",
     facteur_puissance: 1.0,
     heures_utilisation_jour: 8,
   });
@@ -194,7 +194,7 @@ export const useEquipements = (
       nom_equipement: "",
       nombre: 1,
       valeur_mesuree: 0,
-      type_valeur: "puissance",
+      type_valeur: "",
       facteur_puissance: 1.0,
       heures_utilisation_jour: 8,
     });

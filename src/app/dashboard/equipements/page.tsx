@@ -189,6 +189,8 @@ export default function EquipementsPage() {
     // Surveillance de l'état de la caméra
   }, [showCamera]);
 
+
+
   // Ouvrir la caméra
   const handleCameraCapture = async (photoIndex: number) => {
     try {
@@ -372,7 +374,7 @@ export default function EquipementsPage() {
       type_equipement_id: 0,
       nombre: 1,
       valeur_mesuree: 0,
-      type_valeur: "puissance",
+      type_valeur: "",
       tension: 0,
       courant: 0,
       facteur_puissance: 1.0,
@@ -485,6 +487,19 @@ export default function EquipementsPage() {
         photos[2] || "",
       ]);
 
+      // Utiliser directement les champs agrégés du backend pour le formulaire
+      const formDataFromBackend = {
+        ...equipementDetails,
+        // Champs agrégés pour l'affichage dans le formulaire
+        semaine_diurne: equipementDetails.semaine_diurne || 0,
+        semaine_nocturne: equipementDetails.semaine_nocturne || 0,
+        weekend_diurne: equipementDetails.weekend_diurne || 0,
+        weekend_nocturne: equipementDetails.weekend_nocturne || 0,
+      };
+
+      // Remplir le formulaire avec les données converties
+      setFormData(formDataFromBackend);
+
       setEditingId(equipement.id);
       setShowForm(true);
     } catch (error) {
@@ -497,52 +512,8 @@ export default function EquipementsPage() {
     }
   };
 
-  // Fonction pour calculer les heures d'utilisation totales par jour
-  const calculerHeuresUtilisationJour = (data: any) => {
-    // Si les données sont au format du formulaire (détail par jour)
-    if (data.lundi_diurne !== undefined) {
-      // On calcule d'abord le total hebdomadaire
-      const totalHeuresDiurnes = (
-        (data.lundi_diurne || 0) +
-        (data.mardi_diurne || 0) +
-        (data.mercredi_diurne || 0) +
-        (data.jeudi_diurne || 0) +
-        (data.vendredi_diurne || 0) +
-        (data.samedi_diurne || 0) +
-        (data.dimanche_diurne || 0)
-      );
-
-      const totalHeuresNocturnes = (
-        (data.lundi_nocturne || 0) +
-        (data.mardi_nocturne || 0) +
-        (data.mercredi_nocturne || 0) +
-        (data.jeudi_nocturne || 0) +
-        (data.vendredi_nocturne || 0) +
-        (data.samedi_nocturne || 0) +
-        (data.dimanche_nocturne || 0)
-      );
-
-      // On arrondit à l'entier le plus proche après la division par 7
-      return Math.round((totalHeuresDiurnes + totalHeuresNocturnes) / 7);
-    }
-
-    // Si on a juste heures_utilisation_jour
-    else if (data.heures_utilisation_jour !== undefined) {
-      return Math.round(data.heures_utilisation_jour);
-    }
+ 
     
-    return 0;
-  };
-
-  // Fonction pour calculer la moyenne des temps d'utilisation
-  const calculerMoyenne = (valeurs: (number | undefined)[]) => {
-    const valeursValides = valeurs
-      .map(v => typeof v === 'number' ? v : 0)
-      .filter(v => !isNaN(v));
-    return valeursValides.length > 0 
-      ? Math.round(valeursValides.reduce((a, b) => a + b, 0) / valeursValides.length)
-      : 0;
-  };
 
   // Sauvegarder
   const handleSave = async () => {
@@ -585,7 +556,7 @@ export default function EquipementsPage() {
         type_equipement_id: formData.type_equipement_id?.toString() || '0',
         nombre: formData.nombre?.toString() || '1',
         valeur_mesuree: formData.valeur_mesuree?.toString() || '0',
-        type_valeur: 'puissance', // Forcer le type à puissance pour le calcul d'énergie
+        type_valeur: formData.type_valeur || 'puissance',
         tension: formData.tension?.toString() || '230', // Tension par défaut en France
         courant: formData.courant?.toString() || '0',
         facteur_puissance: formData.facteur_puissance?.toString() || '0.8', // Facteur de puissance par défaut
@@ -593,21 +564,11 @@ export default function EquipementsPage() {
 
 
 
-      // Envoyer directement les champs individuels de temps (nouveau format backend)
-      data.lundi_diurne = formData.lundi_diurne || 0;
-      data.lundi_nocturne = formData.lundi_nocturne || 0;
-      data.mardi_diurne = formData.mardi_diurne || 0;
-      data.mardi_nocturne = formData.mardi_nocturne || 0;
-      data.mercredi_diurne = formData.mercredi_diurne || 0;
-      data.mercredi_nocturne = formData.mercredi_nocturne || 0;
-      data.jeudi_diurne = formData.jeudi_diurne || 0;
-      data.jeudi_nocturne = formData.jeudi_nocturne || 0;
-      data.vendredi_diurne = formData.vendredi_diurne || 0;
-      data.vendredi_nocturne = formData.vendredi_nocturne || 0;
-      data.samedi_diurne = formData.samedi_diurne || 0;
-      data.samedi_nocturne = formData.samedi_nocturne || 0;
-      data.dimanche_diurne = formData.dimanche_diurne || 0;
-      data.dimanche_nocturne = formData.dimanche_nocturne || 0;
+      // Utiliser directement les champs agrégés saisis par l'utilisateur
+      data.semaine_diurne = formData.semaine_diurne || 0; // Total semaine diurne
+      data.semaine_nocturne = formData.semaine_nocturne || 0; // Total semaine nocturne
+      data.weekend_diurne = formData.weekend_diurne || 0; // Total weekend diurne
+      data.weekend_nocturne = formData.weekend_nocturne || 0; // Total weekend nocturne
 
       // Ajouter les photos seulement si elles existent (fichiers)
       if (newPhotos.length > 0) {
@@ -1079,90 +1040,127 @@ export default function EquipementsPage() {
                   Temps d'Utilisation Détaillé
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Configurez les heures d'utilisation pour chaque jour de la
-                  semaine (diurne: 6h-18h, nocturne: 18h-6h)
+                  Configurez les heures d'utilisation totales pour les jours ouvrables et le weekend
                 </p>
 
-                {/* Jours de la semaine */}
+                {/* Jours ouvrables (Lundi-Vendredi) */}
                 <div className="space-y-4">
-                  {[
-                    { key: "lundi", label: "Lundi" },
-                    { key: "mardi", label: "Mardi" },
-                    { key: "mercredi", label: "Mercredi" },
-                    { key: "jeudi", label: "Jeudi" },
-                    { key: "vendredi", label: "Vendredi" },
-                    { key: "samedi", label: "Samedi" },
-                    { key: "dimanche", label: "Dimanche" },
-                  ].map((jour) => (
-                    <div
-                      key={jour.key}
-                      className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center"
-                    >
-                      <div className="font-medium">{jour.label}</div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          Diurne (6h-18h)
-                        </Label>
-                        <div className="flex">
-                          <Input
-                            type="number"
-                            step="1"
-                            min="0"
-                            max="12"
-                            value={
-                              formData[
-                                `${jour.key}_diurne` as keyof typeof formData
-                              ] as number
-                            }
-                            onChange={(e) => {
-                              const value = e.target.value.replace(',', '.');
-                              const parsedValue = parseFloat(value);
-                              const validValue = !isNaN(parsedValue) ? Math.min(Math.max(Math.round(parsedValue), 0), 12) : 0;
-                              setFormData({
-                                ...formData,
-                                [`${jour.key}_diurne`]: validValue,
-                              });
-                            }}
-                            className="rounded-r-none text-sm"
-                          />
-                          <div className="flex items-center px-2 bg-muted border border-l-0 rounded-r-md text-xs">
-                            h
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          Nocturne (18h-6h)
-                        </Label>
-                        <div className="flex">
-                          <Input
-                            type="number"
-                            step="1"
-                            min="0"
-                            max="12"
-                            value={
-                              formData[
-                                `${jour.key}_nocturne` as keyof typeof formData
-                              ] as number
-                            }
-                            onChange={(e) => {
-                              const value = e.target.value.replace(',', '.');
-                              const parsedValue = parseFloat(value);
-                              const validValue = !isNaN(parsedValue) ? Math.min(Math.max(Math.round(parsedValue), 0), 12) : 0;
-                              setFormData({
-                                ...formData,
-                                [`${jour.key}_nocturne`]: validValue,
-                              });
-                            }}
-                            className="rounded-r-none text-sm"
-                          />
-                          <div className="flex items-center px-2 bg-muted border border-l-0 rounded-r-md text-xs">
-                            h
-                          </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div className="font-medium">Jours ouvrables (Lun-Ven)</div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Total Diurne (6h-18h)
+                      </Label>
+                      <div className="flex">
+                        <Input
+                          type="number"
+                          step="1"
+                          min="0"
+                          max="60"
+                          value={formData.semaine_diurne || 0}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(',', '.');
+                            const parsedValue = parseFloat(value);
+                            const validValue = !isNaN(parsedValue) ? Math.min(Math.max(Math.round(parsedValue), 0), 60) : 0;
+                            setFormData({
+                              ...formData,
+                              semaine_diurne: validValue,
+                            });
+                          }}
+                          className="rounded-r-none text-sm"
+                        />
+                        <div className="flex items-center px-2 bg-muted border border-l-0 rounded-r-md text-xs">
+                          h
                         </div>
                       </div>
                     </div>
-                  ))}
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Total Nocturne (18h-6h)
+                      </Label>
+                      <div className="flex">
+                        <Input
+                          type="number"
+                          step="1"
+                          min="0"
+                          max="60"
+                          value={formData.semaine_nocturne || 0}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(',', '.');
+                            const parsedValue = parseFloat(value);
+                            const validValue = !isNaN(parsedValue) ? Math.min(Math.max(Math.round(parsedValue), 0), 60) : 0;
+                            setFormData({
+                              ...formData,
+                              semaine_nocturne: validValue,
+                            });
+                          }}
+                          className="rounded-r-none text-sm"
+                        />
+                        <div className="flex items-center px-2 bg-muted border border-l-0 rounded-r-md text-xs">
+                          h
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Weekend (Samedi-Dimanche) */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div className="font-medium">Weekend (Sam-Dim)</div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Total Diurne (6h-18h)
+                      </Label>
+                      <div className="flex">
+                        <Input
+                          type="number"
+                          step="1"
+                          min="0"
+                          max="24"
+                          value={formData.weekend_diurne || 0}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(',', '.');
+                            const parsedValue = parseFloat(value);
+                            const validValue = !isNaN(parsedValue) ? Math.min(Math.max(Math.round(parsedValue), 0), 24) : 0;
+                            setFormData({
+                              ...formData,
+                              weekend_diurne: validValue,
+                            });
+                          }}
+                          className="rounded-r-none text-sm"
+                        />
+                        <div className="flex items-center px-2 bg-muted border border-l-0 rounded-r-md text-xs">
+                          h
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Total Nocturne (18h-6h)
+                      </Label>
+                      <div className="flex">
+                        <Input
+                          type="number"
+                          step="1"
+                          min="0"
+                          max="24"
+                          value={formData.weekend_nocturne || 0}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(',', '.');
+                            const parsedValue = parseFloat(value);
+                            const validValue = !isNaN(parsedValue) ? Math.min(Math.max(Math.round(parsedValue), 0), 24) : 0;
+                            setFormData({
+                              ...formData,
+                              weekend_nocturne: validValue,
+                            });
+                          }}
+                          className="rounded-r-none text-sm"
+                        />
+                        <div className="flex items-center px-2 bg-muted border border-l-0 rounded-r-md text-xs">
+                          h
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Résumé hebdomadaire */}
@@ -1173,36 +1171,34 @@ export default function EquipementsPage() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">
-                        Total diurne:
+                        Total diurne semaine:
                       </span>
                       <span className="ml-2 font-medium">
-                        {(
-                          (formData.lundi_diurne || 0) +
-                          (formData.mardi_diurne || 0) +
-                          (formData.mercredi_diurne || 0) +
-                          (formData.jeudi_diurne || 0) +
-                          (formData.vendredi_diurne || 0) +
-                          (formData.samedi_diurne || 0) +
-                          (formData.dimanche_diurne || 0)
-                        )}
-                        h
+                        {(formData.semaine_diurne || 0)}h
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">
-                        Total nocturne:
+                        Total nocturne semaine:
                       </span>
                       <span className="ml-2 font-medium">
-                        {(
-                          (formData.lundi_nocturne || 0) +
-                          (formData.mardi_nocturne || 0) +
-                          (formData.mercredi_nocturne || 0) +
-                          (formData.jeudi_nocturne || 0) +
-                          (formData.vendredi_nocturne || 0) +
-                          (formData.samedi_nocturne || 0) +
-                          (formData.dimanche_nocturne || 0)
-                        )}
-                        h
+                        {(formData.semaine_nocturne || 0)}h
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">
+                        Total diurne weekend:
+                      </span>
+                      <span className="ml-2 font-medium">
+                        {(formData.weekend_diurne || 0)}h
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">
+                        Total nocturne weekend:
+                      </span>
+                      <span className="ml-2 font-medium">
+                        {(formData.weekend_nocturne || 0)}h
                       </span>
                     </div>
                     <div className="col-span-2">
@@ -1211,20 +1207,10 @@ export default function EquipementsPage() {
                       </span>
                       <span className="ml-2 font-medium">
                         {(
-                          (formData.lundi_diurne || 0) +
-                          (formData.lundi_nocturne || 0) +
-                          (formData.mardi_diurne || 0) +
-                          (formData.mardi_nocturne || 0) +
-                          (formData.mercredi_diurne || 0) +
-                          (formData.mercredi_nocturne || 0) +
-                          (formData.jeudi_diurne || 0) +
-                          (formData.jeudi_nocturne || 0) +
-                          (formData.vendredi_diurne || 0) +
-                          (formData.vendredi_nocturne || 0) +
-                          (formData.samedi_diurne || 0) +
-                          (formData.samedi_nocturne || 0) +
-                          (formData.dimanche_diurne || 0) +
-                          (formData.dimanche_nocturne || 0)
+                          (formData.semaine_diurne || 0) +
+                          (formData.semaine_nocturne || 0) +
+                          (formData.weekend_diurne || 0) +
+                          (formData.weekend_nocturne || 0)
                         )}
                         h
                       </span>
@@ -1234,7 +1220,7 @@ export default function EquipementsPage() {
                         Total heures/jour (utilisé pour les calculs):
                       </span>
                       <span className="ml-2 font-medium">
-                        {calculerHeuresUtilisationJour(formData)}h
+                        {(formData.temps_diurne_journalier || 0) + (formData.temps_nocturne_journalier || 0)}h
                       </span>
                     </div>
                   </div>
@@ -1296,7 +1282,7 @@ export default function EquipementsPage() {
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between font-medium">
                       <span>Total heures/jour:</span>
-                      <span>{calculerHeuresUtilisationJour(equipement)}h</span>
+                      <span>{(equipement.temps_diurne_journalier || 0) + (equipement.temps_nocturne_journalier || 0)}h</span>
                     </div>
                   </div>
 
